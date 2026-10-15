@@ -133,4 +133,21 @@
   G.Funding.kofi = '';
 
   G.I18n.add(en);
+
+  // ---- botón de pruebas (sólo en el prototipo): todos los campeones y sus Prestigios ----
+  const b = document.createElement('button');
+  b.textContent = '🔧 Pruebas';
+  b.title = 'Desbloquea todos los campeones y sus aspectos de Prestigio';
+  b.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:60;padding:6px 10px;font:600 13px Pixelify,"Segoe UI",sans-serif;' +
+                    'background:#1d2433;color:#e8c050;border:2px solid #e8c050;border-radius:6px;cursor:pointer;opacity:.9';
+  b.onclick = () => {
+    if (!G.DB.save) { G.UI.toast('Entra primero (como invitado vale)'); return; }
+    for (const p of G.DEX) { G.DB.grant(p.dex, 'pruebas'); if (!p.leg) G.DB.grantShiny(p.dex, 'pruebas'); }
+    G.DB.commit();
+    G.Audio.sfx('buy');
+    G.UI.toast('Tienes todos los campeones y sus Prestigios');
+  };
+  const place = () => { if (document.body && !b.parentNode) document.body.appendChild(b); };
+  place(); document.addEventListener('DOMContentLoaded', place);
+  setInterval(() => { b.style.display = G.Game && G.Game.state === 'ui' && G.DB.save ? '' : 'none'; }, 400);
 })();
