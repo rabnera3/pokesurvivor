@@ -122,9 +122,11 @@ def pose(anim, f, n):
         p['bob'] = [0, 0, 1, 0][f % 4]
     elif anim == 'Walk':
         ph = math.sin(t * 2 * math.pi)
-        p['leg'] = ph * 1.4
+        p['leg'] = ph * 1.8
         p['arm'] = -ph
-        p['bob'] = [0, -1, 0, 0, -1, 0][f % 6]
+        p['bob'] = [0, -1, -1, 0, -1, -1][f % 6]
+        p['carry'] = True            # el arma baja a un lado (se ven las piernas)
+        p['sway'] = [0, 1, 1, 0, -1, -1][f % 6]
     elif anim == 'Attack':
         # preparación atrás -> golpe -> se queda y vuelve
         seq = [-110, -130, -60, 20, 70, 85, 60, 20]

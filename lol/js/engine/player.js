@@ -1,8 +1,11 @@
+// Lo que apunta al blanco (el campeón se gira hacia él al lanzarlo).
+const AIMED_KINDS = new Set(['melee', 'beam', 'projectile', 'cone', 'dash', 'boomerang', 'chain']);
+
 /* ============ player.js (RuneSurvivor) — el campeón que controlas ============
  * Copia de js/entities/player.js con lo de League of Legends:
  *   - estadísticas de LoL (pl.st, ver lol/js/lol-stats.js) que crecen por nivel
- *   - kit: ataque básico siempre, una habilidad activa (Q/W/E, se cambia con
- *     1-3) y la definitiva (R) que se lanza sola; se desbloquean por nivel
+ *   - kit: ataque básico siempre y Q/W/E/R, que se lanzan solas cada una con
+ *     su recarga; se desbloquean por nivel
  *   - hasta 6 objetos, pasiva con 3 mejoras, escudo
  *   - el daño recibido baja con la armadura (físico) o la RM (mágico)
  *   - subir de nivel cuesta más que en PokéSurvivor
@@ -92,7 +95,8 @@ G.Player = class Player {
   // La de PokéSurvivor (×4 el 2026-10-10) y, además, cada nivel cuesta un 15 %
   // más que el anterior (el nivel 10 cuesta ×2,35): la R llega hacia el minuto 5-7.
   static xpFor(level) {
-    return Math.floor((8 + level * 6 + Math.pow(level, 1.75) * 1.6) * 4 * (1 + 0.15 * (level - 1)));
+    // 2026-10-15: subir costaba poco (en 10 min se llegaba muy alto): ×1,2 y crece más.
+    return Math.floor((8 + level * 6 + Math.pow(level, 1.75) * 1.6) * 4.8 * (1 + 0.25 * (level - 1)));
   }
 
   cy() { return this.y; }
@@ -150,14 +154,11 @@ G.Player = class Player {
 
   hasMove(id) { return this.moves.some(m => m.id === id); }
 
+  // Ya no hay habilidad "activa": todas se lanzan solas. Se deja el índice (el
+  // cooperativo y el HUD lo leen) pero cambiarlo no hace nada.
   setActive(i) {
-    if (i < 0 || i >= this.slots.length || i === this.active) return;
+    if (i < 0 || i >= this.slots.length) return;
     this.active = i;
-    G.Projectiles.clearOrbs(this);
-    G.Audio.sfx('select');
-    for (const m of this.slots[i]) m.t = Math.min(m.t, m.cd * 0.35);
-    const m = this.slots[i][0];
-    G.FX.ring(this.x, this.y - G.LIFT * 0.5, 6, this.r * 3.4, G.U.TYPE_COLOR[m.type], 0.3, 3);
   }
 
   cycle(dir) {
@@ -214,7 +215,7 @@ G.Player = class Player {
       if (this.anim.busy()) return;
       G.Audio.sfx('shot', { kind: m.kind === 'melee' ? 'melee' : 'projectile', type: m.type });
       this.anim.play(m.kind === 'melee' ? 'Attack' : 'Shoot', { speed: Math.max(1.4, (this.st ? this.st.as : 0.7) * 1.6) });
-      this.attackFace = 0.3;
+      this.attackFace = 0.2;
       return;
     }
     // Si el sprite del campeón tiene una animación propia para esta habilidad
@@ -234,7 +235,9 @@ G.Player = class Player {
     const len = meta ? meta.d.reduce((a, b) => a + b, 0) / 60 : 0.4;
     const cd = Math.max(0.12, m.cd * this.cdMul);
     this.anim.play(anim, { speed: Math.max(1, len / (cd * 0.9)) });
-    this.attackFace = 0.35;
+    // Sólo se gira hacia el blanco lo que apunta (un giro, un escudo o una lluvia
+    // de meteoros no): así, al huir, el campeón mira hacia donde camina.
+    if (AIMED_KINDS.has(m.kind)) this.attackFace = 0.25;
   }
 
   // ---------------- daño y curación ----------------

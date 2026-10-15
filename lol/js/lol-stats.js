@@ -124,7 +124,8 @@ G.LoL = (() => {
     const r = Math.max(0, (m.lvl || 1) - 1);
     const base = Array.isArray(m.base) ? m.base[Math.min(r, m.base.length - 1)] : (m.base || 0);
     return (base + (m.adR || 0) * st.ad + (m.apR || 0) * st.ap + (m.arR || 0) * st.ar + (m.mrR || 0) * st.mr +
-            (m.hpR || 0) * Math.max(0, pl.maxHp - pl.kitDef.base.hp)) * (m.dmgK || 1);
+            (m.hpR || 0) * Math.max(0, pl.maxHp - pl.kitDef.base.hp)) * (m.dmgK || 1) *
+           (Array.isArray(m.scaleK) ? m.scaleK[Math.min(r, m.scaleK.length - 1)] : (m.scaleK || 1));
   }
 
   /** Para el bot de pruebas (lol/tools/sim.js). */

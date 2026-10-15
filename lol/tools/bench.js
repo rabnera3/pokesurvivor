@@ -5,8 +5,8 @@
  * Sin oleadas, eventos ni grietas: alrededor del campeón hay siempre un grupo
  * de muñecos (enemigos quietos que no pegan; al caer, sale otro). El campeón
  * está al nivel pedido, con cada habilidad al rango que ese nivel permite.
- * Para Q, W y E: 8 s con esa habilidad activa (más el ataque básico y la R que
- * vayan cayendo) y se mide el daño de cada cosa por separado. Luego lo mismo
+ * Para Q, W y E: SECS s (24) sólo con esa habilidad (más el ataque básico y la R
+ * que vayan cayendo), luego todas a la vez, y se mide el daño de cada cosa. Luego lo mismo
  * con todas evolucionadas (dándole los objetos que piden).
  * Escribe una línea JSON con el daño por segundo de cada parte y los errores.
  */
@@ -88,9 +88,9 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     await page.evaluate(k => {
       const pl = G.Game.player;
       pl.x = 0; pl.y = 0;
-      const i = pl.slots.findIndex(g => g[0].key === k);
-      if (i >= 0) pl.setActive(i);
-      for (const m of [...pl.moves, pl.abil.R, pl.basicAtk]) if (m) m.dealt = 0;
+      // k = 'Q' | 'W' | 'E': sólo esa (más el básico y la R); 'all': todas a la vez
+      pl.only = k === 'all' ? null : k;
+      for (const m of [...pl.moves, pl.abil.R, pl.basicAtk]) if (m) { m.dealt = 0; m.t = 0; }
       window.__t0 = performance.now();
     }, key);
     const t0 = Date.now();
@@ -123,7 +123,9 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
 
   const res = { dex: DEX, setup, base: {}, evo: {} };
   const keys = await page.evaluate(() => G.Game.player.moves.map(m => m.key));
-  for (const k of keys) res.base[k] = await measure(k, 8, shots ? `${shots}/bench-${DEX}-${k}.png` : null);
+  const SECS = +(process.env.SECS || 24);
+  for (const k of keys) res.base[k] = await measure(k, SECS, shots ? `${shots}/bench-${DEX}-${k}.png` : null);
+  res.base.all = await measure('all', SECS, null);
   // Evolucionadas
   await page.evaluate(() => {
     const pl = G.Game.player;
@@ -134,7 +136,8 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
       if (ev) { if (!pl.hasItem(ev.item)) { pl.items.push(ev.item); G.LoL.recalc(pl); } G.Kit.evolve(m); }
     }
   });
-  for (const k of keys) res.evo[k] = await measure(k, 8, shots ? `${shots}/bench-${DEX}-${k}-evo.png` : null);
+  for (const k of keys) res.evo[k] = await measure(k, SECS, shots ? `${shots}/bench-${DEX}-${k}-evo.png` : null);
+  res.evo.all = await measure('all', SECS, null);
   res.errors = errors.slice(0, 5).map(e => e.slice(0, 300));
   console.log(JSON.stringify(res));
   await browser.close();

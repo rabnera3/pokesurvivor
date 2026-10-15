@@ -571,7 +571,7 @@ def extras(pen, ch, view, top, hip, lean, sdx, t):
 def draw_chibi(pen, ch, view, p, t):
     bob = p['bob']
     w, hs, legL, bodyH, hip, top = dims(ch, bob)
-    lean = p['lean']
+    lean = p['lean'] + (p.get('sway', 0) * 0.5 if view != 'side' else 0)
     hy = top - hs + 2 if not ch.get('art') else top - ch.get('headUp', 7)
     hx = lean
     skin = hexc(ch['skin'])
@@ -869,8 +869,11 @@ def draw_chibi(pen, ch, view, p, t):
             sk = hexc(ch['skirt'])
             pen.poly([(lean - 2.4 * w, hip - 1), (lean + 2.4 * w, hip - 1), (lean + 3.5 * w, hip + 2.5), (lean - 3.5 * w, hip + 2.5)], sk)
         extras(pen, ch, view, top, hip, lean, 0, t)
+        if p.get('carry'):
+            hxx, hyy = arm(lean, top + 2.5, -100 + p['arm'] * 6, length=4.5)
+            draw_weapon(pen, ch, hxx, hyy, 198 + p['arm'] * 4, 1)
         head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'])
-        if idle_hold == 'across' and swing is None and not p['hurt'] and p['reach'] == 0 and p['raise_'] == 0:
+        if idle_hold == 'across' and swing is None and not p['hurt'] and p['reach'] == 0 and p['raise_'] == 0 and not p.get('carry'):
             a = 40
             hxx, hyy = arm(lean + 1, top + 3, 70, length=5)
             draw_weapon(pen, ch, hxx, hyy, -10, 1)
@@ -878,8 +881,9 @@ def draw_chibi(pen, ch, view, p, t):
             a = wa_ang if (swing is not None or p['reach'] > 0 or p['raise_'] > 0 or p['hurt']) else 80 - p['arm'] * 30
             if p['reach'] > 0:
                 a = -10 + (1 - p['reach']) * 40
-            hxx, hyy = arm(lean + 1, top + 2.5, a)
-            draw_weapon(pen, ch, hxx, hyy, a + grip, 1, p.get('smear'))
+            if not p.get('carry'):
+                hxx, hyy = arm(lean + 1, top + 2.5, a)
+                draw_weapon(pen, ch, hxx, hyy, a + grip, 1, p.get('smear'))
         pauldron(lean - 0.5, top + 3)
         return
 
@@ -889,18 +893,20 @@ def draw_chibi(pen, ch, view, p, t):
     cape_back()
     back_hair(pen, ch, hx + sdx, hy, hs, view, hair, bob)
     wsx = -sh if front else sh          # mano del arma: la derecha del campeón
-    across = idle_hold == 'across' and swing is None and not p['hurt'] and p['reach'] == 0 and p['raise_'] == 0
+    across = idle_hold == 'across' and swing is None and not p['hurt'] and p['reach'] == 0 and p['raise_'] == 0 and not p.get('carry')
     if back:
         if across:
             # de espaldas sólo asoma la hoja por un lado, a la altura de la cadera
             draw_weapon(pen, ch, lean - 2, hip - 2, 0, -1)
-        else:
+        elif not p.get('carry'):
             a = (180 - wa_ang) if swing is None else wa_ang
             hxx, hyy = arm(lean + wsx * 0.95, top + 2.5, a, far=True)
             draw_weapon(pen, ch, hxx, hyy, a + grip, -1, p.get('smear'))
     ph = p['leg']
-    leg(lean - 1.7 * w + sdx * 0.4, max(0, ph) * 1.6, 0)
-    leg(lean + 1.7 * w + sdx * 0.4, max(0, -ph) * 1.6, 0)
+    # las piernas no se balancean con el cuerpo: van un poco por detrás
+    lx = p['lean']
+    leg(lx - 1.7 * w + sdx * 0.4, max(0, ph) * 1.4, 0)
+    leg(lx + 1.7 * w + sdx * 0.4, max(0, -ph) * 1.4, 0)
     if across and front:
         arm(lean + sh * 0.95, top + 2.5, 108, length=ch.get('holdLen', 6.5))
         arm(lean + wsx * 0.95, top + 2.5, 72, length=ch.get('holdLen', 6.5))
@@ -913,6 +919,9 @@ def draw_chibi(pen, ch, view, p, t):
         oa = (180 - oa_ang) if front else oa_ang
         arm(lean - wsx * 0.95, top + 2.5, oa)
     cape_over()
+    if back and p.get('carry'):
+        # de espaldas, el arma al hombro cruza la espalda en diagonal
+        draw_weapon(pen, ch, lean + sh * 0.55, top + 4, -72 + p['arm'] * 4, 1)
     wings(pen, ch, view, top, lean, t, over=True)
     back_hair_over(pen, ch, hx + sdx, hy, hs, view, hair)
     po = max(sh + 1.2, hs + 0.3) if ch.get('pauldronSize', 1.0) > 1.1 else sh + 0.5
@@ -927,11 +936,17 @@ def draw_chibi(pen, ch, view, p, t):
             wang = a + 15
         if p['hurt']:
             a, wang = 150, 215
+        if p.get('carry'):
+            # al andar, el arma al hombro: la hoja asoma por detrás de la cabeza
+            a, wang = -75 + p['arm'] * 6, 222 + p['arm'] * 4
+            hxx, hyy = arm(lean + wsx * 0.95, top + 2.5, a, length=4.5)
+            draw_weapon(pen, ch, hxx, hyy, wang, 1)
+            return
         hxx, hyy = arm(lean + wsx * 0.95, top + 2.5, a)
         draw_weapon(pen, ch, hxx, hyy, wang, 1, p.get('smear'))
 
     # al coger impulso (arma por encima de la cabeza) el arma va detrás de la cabeza
-    behind_head = front and not across and swing is not None and swing < -30
+    behind_head = front and not across and ((swing is not None and swing < -30) or p.get('carry'))
     if behind_head:
         front_weapon()
     pauldron(lean - po + sdx * 0.3, top + 2, far=view == 'front3q')

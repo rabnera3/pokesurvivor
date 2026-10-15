@@ -188,14 +188,14 @@ G.Kit = (() => {
          self: { stat: 'spd', amount: 0.25, dur: 1.2, stacks: 1 },
          evo: { item: 'tf', name: 'Golpe Decisivo Demaciano', en: 'Demacian Decisive Strike',
                 text: 'Golpea en 360°, aturde 0,6 s y hace ×1,3 de daño.', mods: { dmgK: 1.3 }, set: { arc: 9, stun: 0.6 } } },
-    W: { name: 'Coraje', en: 'Courage', type: 'steel', kind: 'aura', vfx: 'garen-w', dt: 'phys',
-         desc: 'Golpe a tu alrededor que te da un escudo. Sube con tu vida extra.',
-         base: [8, 11, 14, 17, 20], adR: 0.3, hpR: 0.04, cd: [0.9, 0.85, 0.8, 0.75, 0.7], radius: 68,
-         shield: 3, shieldR: 0.03,
+    W: { name: 'Coraje', en: 'Courage', type: 'steel', kind: 'buff', vfx: 'garen-w', dt: 'phys', noDmg: true,
+         desc: 'Te proteges: recibes un 30 % menos de daño durante 2,5 s y ganas un escudo (8 % de tu vida máxima). No ataca.',
+         base: 0, cd: [12, 11, 10, 9, 8], stat: 'def', amount: 0.3, dur: 2.5, stacks: 1, shieldR: 0.08,
+         ranks: [{}, { shieldR: 1.15 }, { dur: 1.2 }, { shieldR: 1.15 }, { dur: 1.2 }],
          evo: { item: 'sterak', name: 'Coraje Inquebrantable', en: 'Unbreakable Courage',
-                text: 'Escudo ×2,5, más radio y reduce la armadura de los golpeados.', mods: { shieldR: 2.5, radius: 1.25, dmgK: 1.15 }, set: { shred: 0.2 } } },
+                text: 'Reduce un 45 % el daño, el escudo es el doble y dura 4 s.', mods: { shieldR: 2 }, set: { amount: 0.45, dur: 4 } } },
     E: { name: 'Juicio', en: 'Judgment', type: 'steel', kind: 'aura', vfx: 'garen-e', dt: 'phys',
-         desc: 'Giras con la espada golpeando todo a tu alrededor.',
+         desc: 'Giras 3 s con la espada golpeando todo a tu alrededor.',
          base: [5, 7, 9, 11, 13], adR: 0.25, cd: [0.42, 0.4, 0.38, 0.36, 0.34], radius: 74,
          ranks: [{}, {}, { radius: 1.08 }, {}, { radius: 1.08 }],
          evo: { item: 'hydra', name: 'Juicio de Demacia', en: 'Judgment of Demacia',
@@ -878,6 +878,77 @@ G.Kit = (() => {
          desc: 'Saltas entre 3 enemigos con daño verdadero (más cuanto menos vida les quede) y pegas más unos segundos.',
          base: [60, 95, 130], adR: 0.8, cd: [16, 13, 10], count: 3, radius: 150, exec: 0.8, self: { stat: 'atk', amount: 0.25, dur: 6, stacks: 1 } }
   });
+})();
+
+// =====================================================================
+//  RECARGAS REALES (2026-10-15)
+// =====================================================================
+// Antes la habilidad activa se relanzaba cada medio segundo. Ahora todas las
+// que tengas se lanzan solas, cada una con su recarga, como en LoL (sus
+// tiempos, más o menos a la mitad: las partidas de supervivencia van más
+// deprisa). El daño de cada lanzamiento sube en proporción para que el daño
+// por segundo de cada habilidad quede en SHARE del que tenía cuando era la
+// única activa (ahora suman las tres).
+//   cd: recarga por rango · chan + every: la habilidad dura chan s y golpea
+//   cada every s (el giro de Garen) · up: las órbitas están up s de cada cd.
+(() => {
+  const r5 = (a, b) => [a, a + (b - a) / 4, a + (b - a) / 2, a + 3 * (b - a) / 4, b].map(v => Math.round(v * 100) / 100);
+  const SHARE = { Q: 0.6, W: 0.45, E: 0.45, R: 0.85 };
+  const T = {
+    86:  { Q: r5(4.5, 3.5), E: { cd: r5(8, 6), chan: 3, every: 0.33 }, R: [40, 32, 25] },
+    103: { Q: r5(4, 3), W: { cd: r5(7, 5), up: 3 }, E: r5(7, 5.5), R: [35, 28, 22] },
+    157: { Q: r5(2.5, 1.8), W: { cd: r5(12, 9), up: 3.5 }, E: r5(3, 2), R: [30, 25, 20] },
+    64:  { Q: r5(5, 4), W: r5(7, 5.5), E: r5(5, 4), R: [35, 28, 22] },
+    62:  { Q: r5(4.5, 3.2), W: r5(9, 7), E: r5(5, 4), R: [40, 32, 25] },
+    122: { Q: r5(5, 3.5), W: r5(3.5, 2.8), E: r5(10, 8), R: [30, 25, 20] },
+    50:  { Q: r5(3, 2.4), W: r5(9, 7), E: r5(6, 4.5), R: [40, 32, 25] },
+    22:  { Q: { cd: r5(4, 3), chan: 2, every: 0.25 }, W: r5(5, 3.5), E: r5(12, 9), R: [35, 28, 22] },
+    150: { Q: r5(4, 3), W: r5(6, 5), E: r5(7, 5), R: [30, 25, 20] },
+    17:  { Q: r5(4, 3), W: { cd: r5(10, 8), chan: 3, every: 0.28 }, E: r5(3, 2.5), R: [6, 5, 4] },
+    54:  { Q: r5(5, 4), W: r5(4, 3), E: r5(5, 4), R: [40, 32, 25] },
+    121: { Q: r5(3, 2.2), W: r5(5, 4), E: r5(8, 6), R: [30, 25, 20] },
+    31:  { Q: r5(5, 4), W: r5(7, 5), E: r5(4, 3), R: [30, 25, 20] },
+    58:  { Q: r5(4, 3), W: r5(5, 3.5), E: r5(7, 5), R: [40, 32, 25] },
+    19:  { Q: r5(3.5, 2.5), W: r5(8, 6), E: r5(7, 5), R: [32, 26, 20] },
+    111: { Q: r5(6, 4.5), W: r5(6, 5), E: r5(4, 3), R: [40, 32, 25] },
+    136: { Q: r5(3, 2.5), W: { cd: r5(9, 7), up: 4 }, E: r5(7, 5), R: [30, 25, 20] },
+    34:  { Q: r5(5, 4), W: r5(8, 6), E: r5(2.5, 2), R: [30, 25, 20] },
+    106: { Q: r5(6, 4), W: r5(3.5, 3), E: r5(7, 5), R: [45, 36, 28] },
+    82:  { Q: r5(4, 3), W: r5(7, 5), E: r5(8, 6), R: [45, 36, 28] },
+    200: { Q: r5(4, 3), W: r5(6, 5), E: { cd: r5(9, 7), chan: 2.5, every: 0.25 }, R: [30, 25, 20] },
+  };
+  // Ajuste por campeón, medido con lol/tools/bench.js (nivel 10, sin objetos y
+  // sin contar la R; media de 2 pasadas de 40 s): acerca a todos a ~115 de daño
+  // por segundo contra un jefe y ~550 contra un grupo (media geométrica, así cada
+  // uno conserva su estilo: Ashe pega más a uno, Swain a muchos).
+  const KCH = { 64: 1.24, 157: 1.23, 103: 1.29, 86: 1.2, 62: 0.94, 122: 1.0, 50: 0.78, 22: 0.89, 150: 1.16, 54: 1.26, 121: 0.98, 17: 1.5, 58: 1.04, 31: 0.89, 111: 1.42, 19: 1.5, 136: 1.27, 34: 1.25, 82: 1.11, 106: 1.05, 200: 0.88 };
+  const at = (a, i) => Array.isArray(a) ? a[Math.min(i, a.length - 1)] : a;
+  for (const dex in T) {
+    const k = G.KITS[dex];
+    for (const key in T[dex]) {
+      const d = k[key];
+      if (!d || d.noDmg) continue;
+      const e = Array.isArray(T[dex][key]) ? { cd: T[dex][key] } : T[dex][key];
+      const old = d.cd, n = e.cd.length;
+      const scale = [];
+      for (let i = 0; i < n; i++) {
+        const oc = at(old, i), nc = e.cd[i];
+        if (e.chan) scale.push(SHARE[key] * nc * e.every / (oc * e.chan));   // daño por golpe del canal
+        else if (e.up) scale.push(SHARE[key] * nc / e.up);             // órbita: sólo up s de cada cd
+        else scale.push(SHARE[key] * nc / oc);
+      }
+      if (e.chan) { d.repeat = Math.round(e.chan / e.every); d.every = e.every; }
+      if (e.up) { d.up = e.up; d.rehit = at(old, 0); }
+      d.scaleK = scale.map(v => Math.round(v * (KCH[dex] || 1) * 100) / 100);
+      d.cd = e.cd;
+      // Escudos y curas por lanzamiento: más grandes (caen menos a menudo), con tope.
+      const r = e.cd[0] / at(old, 0);
+      if (d.shieldR) d.shieldR = Math.min(0.15, d.shieldR * r * 0.4);
+      if (d.shield) d.shield = Math.min(40, d.shield * r * 0.4);
+      if (d.healR) d.healR = Math.min(0.12, d.healR * r * 0.4);
+      if (d.healSelf) d.healSelf = d.healSelf * r * 0.4;
+    }
+  }
 })();
 
 G.Kit.registerAll();

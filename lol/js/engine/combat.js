@@ -28,10 +28,12 @@ G.Combat = (() => {
   function tick(dt, pl, now) {
     if (pl.dead) return;
     if (pl.basicAtk) tickMove(dt, pl, pl.basicAtk, now);
-    // Vínculos: todos los movimientos del hueco activo, cada uno con su recarga.
-    for (const m of pl.activeGroup()) tickMove(dt, pl, m, now);
-    // Los que no son la activa también se recargan (para que al cambiar estén listos).
-    for (const m of pl.moves) if (!pl.activeGroup().includes(m) && m.t > 0) m.t -= dt;
+    // Todas las habilidades que tengas se lanzan solas, cada una con su recarga
+    // (como en LoL). pl.only: sólo esa (el banco de pruebas mide de una en una).
+    for (const m of pl.moves) {
+      if (pl.only && m.key !== pl.only) { if (m.kind === 'orbit') m.on = 0; continue; }
+      tickMove(dt, pl, m, now);
+    }
     if (pl.abil && pl.abil.R) tickMove(dt, pl, pl.abil.R, now);
     // Lanzamientos repetidos (Ciclón, Ímpetu Espiritual...).
     for (let i = pl.reps.length - 1; i >= 0; i--) {
@@ -54,7 +56,25 @@ G.Combat = (() => {
 
   function tickMove(dt, pl, m, now) {
     m.cdEff = cdNow(pl, m);
-    if (m.kind === 'orbit') { m.dmg = G.LoL.abilityDmg(pl, m); orbit(pl, m, dt, now); return; }
+    if (m.kind === 'orbit') {
+      // Órbita: gira up s y luego se recarga (sin up, siempre, como antes).
+      m.dmg = G.LoL.abilityDmg(pl, m);
+      if (!m.up) { orbit(pl, m, dt, now); return; }
+      m.t -= dt;
+      if (m.on > 0) {
+        m.on -= dt;
+        orbit(pl, m, dt, now);
+        if (m.on <= 0) for (const p of G.Projectiles.all().filter(p => p.orb && p.owner === pl && p.mid === m.id)) G.Projectiles.remove(p);
+        return;
+      }
+      if (m.t > 0) return;
+      m.on = m.up;
+      m.t = Math.max(0.05, m.cdEff);
+      pl.cast(m);
+      m.castAt = performance.now();
+      onCast(pl, m);
+      return;
+    }
 
     m.t -= dt;
     if (m.t > 0) return;
@@ -536,7 +556,7 @@ G.Combat = (() => {
         x: pl.x, y: pl.y, r: m.size, color: col, vis: G.VFX.forMove(m),
         dmg: m.dmg * pl.atk,
         oa: (i / want) * 6.2832, orad: m.radius, ospeed: m.speed,
-        rehit: Math.max(0.12, m.cd),
+        rehit: Math.max(0.12, m.rehit || m.cd),
         knock: m.knock || 0, burn: m.burn || 0, poison: m.poison || 0, slow: m.slow || 0, mtype: m.type, src: m
       });
     }

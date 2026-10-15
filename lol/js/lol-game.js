@@ -134,6 +134,37 @@
 
   G.I18n.add(en);
 
+  // ---- pantalla de subir de nivel: la habilidad que se acaba de desbloquear ----
+  const DT_NAME = { phys: 'daño físico', magic: 'daño mágico', true: 'daño verdadero' };
+  const fmtS = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+  // G.RunUI se carga después que este archivo: se engancha al terminar de cargar todo.
+  setTimeout(() => {
+  const oShow = G.RunUI.showLevelUp;
+  G.RunUI.showLevelUp = function (level, list, cb, coop) {
+    oShow.apply(this, arguments);
+    const pl = G.Game.player, cards = document.getElementById('cards');
+    let box = document.getElementById('lol-newabil');
+    if (!box && cards) {
+      box = document.createElement('div');
+      box.id = 'lol-newabil';
+      box.style.cssText = 'max-width:560px;margin:0 auto 10px;padding:10px 12px;border-radius:10px;' +
+        'background:rgba(20,30,50,.92);border:2px solid #e0b84a;text-align:left;font-size:14px;line-height:1.35';
+      cards.parentNode.insertBefore(box, cards);
+    }
+    if (!box) return;
+    // Las que se desbloquean justo en el nivel de esta pantalla (si se suben
+    // varios de golpe, cada pantalla enseña las suyas).
+    const fresh = pl && pl.abil ? ['Q', 'W', 'E', 'R'].filter(k => G.Kit.UNLOCK[k] === level && k !== 'Q' && pl.abil[k]).map(k => pl.abil[k]) : [];
+    box.style.display = fresh.length ? '' : 'none';
+    box.innerHTML = fresh.map(m => {
+      const info = [m.noDmg ? 'sin daño' : DT_NAME[m.dt] || '', 'recarga ' + fmtS(m.cdEff || m.cd) + ' s'].filter(Boolean).join(' · ');
+      return `<div style="margin:2px 0"><b style="color:#ffd23f">¡Nueva habilidad!</b> ` +
+        `<span style="background:#e0b84a;color:#1b1528;border-radius:4px;padding:0 5px;font-weight:700">${m.key}</span> ` +
+        `<b>${G.I18n.t(m.name)}</b> <span style="opacity:.7">(${info})</span><br>${G.I18n.t(m.desc || '')}</div>`;
+    }).join('');
+  };
+  }, 0);
+
   // ---- botón de pruebas (sólo en el prototipo): todos los campeones y sus Prestigios ----
   const b = document.createElement('button');
   b.textContent = '🔧 Pruebas';

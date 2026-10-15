@@ -155,8 +155,11 @@ PATCHES = [
     ('js/data/enemies.js', "        at: slot.at, dex: p.dex, name: p.name,", "        at: slot.at, dex: p.dex, name: p.name, ar: p.ar, mr: p.mr,"),
     # HUD: recarga real (celeridad), letra de cada habilidad, objetos y R (lol/js/lol-hud.js).
     ('js/ui/hud.js', "const cdOf = m => m.kind === 'orbit' ? 0 : G.U.clamp(m.t / (m.cd * pl.cdMul), 0, 1);",
-                     "const cdOf = m => m.kind === 'orbit' ? 0 : G.U.clamp(m.t / (m.cdEff || m.cd * pl.cdMul), 0, 1);"),
-    ('js/ui/hud.js', "      ctx.fillText(String(i + 1), x + 3, y + 10);", "      ctx.fillText(m.key ? (i + 1) + ' ' + m.key : String(i + 1), x + 3, y + 10);"),
+                     "const cdOf = m => m.kind === 'orbit' && !m.up ? 0 : m.on > 0 ? 0 : G.U.clamp(m.t / (m.cdEff || m.cd * pl.cdMul), 0, 1);"),
+    ('js/ui/hud.js', "      ctx.fillText(String(i + 1), x + 3, y + 10);", "      ctx.fillText(m.key || String(i + 1), x + 3, y + 10);"),
+    # Sin habilidad activa: todas se lanzan solas (ninguna se resalta ni se elige tocándola).
+    ('js/ui/hud.js', "      const on = i === pl.active;", "      const on = !G.LoL && i === pl.active;"),
+    ('js/ui/hud.js', "      if (m) G.Touch.addButton(x, y, S, S, () => {", "      if (m && !G.LoL) G.Touch.addButton(x, y, S, S, () => {"),
     ('js/ui/hud.js', "      const bx = sx + totalW + 12, by = sy + S / 2 - 12;", "      const bx = G.LoL.hudRight || sx + totalW + 12, by = sy + S / 2 - 12;"),
     ('js/ui/hud.js', "    {\n      const ix = sx - S - 18, iy = sy;", "    if (G.LoL) G.LoL.hud(ctx, pl, sx, sy, S, totalW, F, roundRect);\n    else {\n      const ix = sx - S - 18, iy = sy;"),
     ('js/entities/vfx.js', "const v = MOVE[m.id] || {};", "const v = (G.VFX.LOL && G.VFX.LOL[m.vfx]) || MOVE[m.vfx || m.id] || {};"),

@@ -30,7 +30,7 @@ campeón, evoluciones que añadan cosas nuevas, estadísticas de LoL y enemigos 
 |---|---|---|
 | **Estadísticas** | DA, PH, armadura, RM, vel. de ataque, celeridad, crítico, robo de vida, omnivampirismo, penetraciones, velocidad, regeneración; crecen por nivel como en LoL (vida y DA de LoL entre ~6) | `js/lol-stats.js` |
 | **Daño** | físico (contra armadura), mágico (contra RM) o verdadero; `100/(100+resistencia)`. Los enemigos también tienen armadura y RM (cada monstruo la suya, sube con el reloj) y te pegan físico o mágico | `js/lol-stats.js`, `tools/roster.py` (RESIST) |
-| **Kit** | ataque básico siempre (cuerpo a cuerpo o a distancia, con la vel. de ataque) + una habilidad activa (Q/W/E, se cambia con 1-3) + la R, que se lanza sola al recargarse | `js/engine/combat.js` |
+| **Kit** | ataque básico siempre (cuerpo a cuerpo o a distancia, con la vel. de ataque) + Q, W, E y R, que se lanzan solas cada una con su recarga real (como en LoL, a la mitad de tiempo más o menos; tabla «RECARGAS REALES» al final de `lol-kits.js`, con el ajuste de daño de cada campeón) | `js/engine/combat.js` |
 | **Desbloqueo** | Q al empezar, W al nivel 3, E al 6 y R al 10. Rangos: Q/W/E hasta 5 (el rango r pide nivel 2r−1), R hasta 3 (niveles 10/14/18) | `js/lol-kits.js` (G.Kit) |
 | **Subir de nivel** | cuesta un 15 % más por nivel que en PokéSurvivor (el nivel 10, ×2,35) | `js/engine/player.js` |
 | **Cartas** | subir de rango una habilidad, mejorar la pasiva (3 niveles), objeto de tu campeón (uno cada 3 niveles; hasta 6), evolución, fragmentos de runa o poción | `js/engine/levelup.js` |

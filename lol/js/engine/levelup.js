@@ -9,18 +9,20 @@
  */
 G.LevelUp = (() => {
   // Fragmentos: van a pl.shards (los suma G.LoL.recalc). `adaptive`: DA o PH
-  // según lo que use tu campeón.
+  // según lo que use tu campeón. Los porcentajes valen más o menos lo mismo que
+  // un fragmento de fuerza adaptable (+3 DA ≈ +15 % de daño a nivel 10), como en
+  // LoL (2026-10-15: antes eran el doble).
   const SHARDS = [
     { id: 'adapt', icon: 'fist', title: 'Fuerza adaptable', desc: '+3 de daño de ataque o +5 de poder de habilidad (lo que uses).', adaptive: true, max: 12 },
-    { id: 'ah', icon: 'clock', title: 'Celeridad', desc: '+8 de celeridad (habilidades más rápidas).', st: { ah: 8 }, max: 8 },
-    { id: 'as', icon: 'quickclaw', title: 'Velocidad de ataque', desc: '+10 % de velocidad de ataque.', st: { asB: 0.1 }, max: 8 },
+    { id: 'ah', icon: 'clock', title: 'Celeridad', desc: '+5 de celeridad (habilidades un poco más rápidas).', st: { ah: 5 }, max: 8 },
+    { id: 'as', icon: 'quickclaw', title: 'Velocidad de ataque', desc: '+6 % de velocidad de ataque.', st: { asB: 0.06 }, max: 8 },
     { id: 'hp', icon: 'heart', title: 'Vitalidad', desc: '+25 de vida máxima.', st: { hp: 25 }, max: 10 },
     { id: 'ar', icon: 'shield', title: 'Armadura', desc: '+9 de armadura (menos daño físico).', st: { ar: 9 }, max: 8 },
     { id: 'mr', icon: 'shield', title: 'Resistencia mágica', desc: '+9 de resistencia mágica (menos daño mágico).', st: { mr: 9 }, max: 8 },
-    { id: 'ms', icon: 'boot', title: 'Velocidad', desc: '+5 % de velocidad de movimiento.', st: { msP: 0.05 }, max: 5 },
-    { id: 'crit', icon: 'star', title: 'Crítico', desc: '+7 % de probabilidad de crítico (ataques básicos).', st: { crit: 0.07 }, max: 6, tag: 'crit' },
-    { id: 'mag', icon: 'magnet', title: 'Imán', desc: '+30 % de radio de recogida.', apply: pl => { pl.magnet *= 1.3; }, max: 5 },
-    { id: 'xp', icon: 'book', title: 'Aprendizaje', desc: '+10 % de experiencia.', apply: pl => { pl.xpMul *= 1.1; }, max: 6 }
+    { id: 'ms', icon: 'boot', title: 'Velocidad', desc: '+3 % de velocidad de movimiento.', st: { msP: 0.03 }, max: 5 },
+    { id: 'crit', icon: 'star', title: 'Crítico', desc: '+4 % de probabilidad de crítico (ataques básicos).', st: { crit: 0.04 }, max: 6, tag: 'crit' },
+    { id: 'mag', icon: 'magnet', title: 'Imán', desc: '+15 % de radio de recogida.', apply: pl => { pl.magnet *= 1.15; }, max: 5 },
+    { id: 'xp', icon: 'book', title: 'Aprendizaje', desc: '+5 % de experiencia.', apply: pl => { pl.xpMul *= 1.05; }, max: 6 }
   ];
   const POTION = { id: 'heal', icon: 'berry', title: 'Poción de vida', desc: 'Recupera el 45 % de tu vida ahora mismo.' };
   // Para quien mire el código de PokéSurvivor (G.LevelUp.STATS lo usan otras pantallas).
@@ -40,21 +42,29 @@ G.LevelUp = (() => {
     const d = G.KITS[m.dex][m.key];
     const r = m.lvl;                         // rango actual (1-based) -> r + 1
     const parts = [];
-    if (Array.isArray(d.base) && d.base[r] != null) parts.push('daño ' + Math.round(d.base[r - 1]) + ' → ' + Math.round(d.base[r]));
+    // Daño real de cada golpe: la base por la escala de su recarga (lol-kits.js, RECARGAS REALES).
+    const k = i => skAt(d, i) * (m.dmgK || 1);
+    if (!d.noDmg && Array.isArray(d.base) && d.base[r] != null)
+      parts.push('daño ' + Math.round(d.base[r - 1] * k(r - 1)) + ' → ' + Math.round(d.base[r] * k(r)) + (m.repeat > 1 ? ' por golpe' : ''));
     if (Array.isArray(d.cd) && d.cd[r] != null && d.cd[r] !== d.cd[r - 1]) parts.push('recarga ' + fmt(d.cd[r - 1]) + ' → ' + fmt(d.cd[r]) + ' s');
     const extra = d.ranks && d.ranks[r];
     if (extra && extra.count) parts.push('+' + extra.count + (m.kind === 'orbit' ? ' orbe' : m.kind === 'chain' ? ' salto' : ' más'));
     if (extra && extra.radius) parts.push('+' + Math.round((extra.radius - 1) * 100) + ' % de área');
+    if (extra && extra.shieldR) parts.push('+' + Math.round((extra.shieldR - 1) * 100) + ' % de escudo');
+    if (extra && extra.dur) parts.push('+' + Math.round((extra.dur - 1) * 100) + ' % de duración');
     return parts.join(' · ') || 'Más fuerte';
   }
   const fmt = v => (Math.round(v * 100) / 100).toString().replace('.', ',');
 
-  function ratioText(d) {
+  const skAt = (d, i) => Array.isArray(d.scaleK) ? d.scaleK[Math.min(i, d.scaleK.length - 1)] : (d.scaleK || 1);
+
+  function ratioText(d, k = 1) {
     const r = [];
-    if (d.adR) r.push(Math.round(d.adR * 100) + ' % DA');
-    if (d.apR) r.push(Math.round(d.apR * 100) + ' % PH');
-    if (d.arR) r.push(Math.round(d.arR * 100) + ' % armadura');
-    if (d.hpR) r.push(Math.round(d.hpR * 100) + ' % vida extra');
+    if (d.noDmg) return '';
+    if (d.adR) r.push(Math.round(d.adR * k * 100) + ' % DA');
+    if (d.apR) r.push(Math.round(d.apR * k * 100) + ' % PH');
+    if (d.arR) r.push(Math.round(d.arR * k * 100) + ' % armadura');
+    if (d.hpR) r.push(Math.round(d.hpR * k * 100) + ' % vida extra');
     return r.length ? ' (+' + r.join(', ') + ')' : '';
   }
 
@@ -94,7 +104,7 @@ G.LevelUp = (() => {
         w: (m.key === 'R' ? 14 : 10) + (act.includes(m) ? 4 : 0), type: 'up', key: 'up:' + m.id,
         icon: 'move:' + m.id, color: G.U.TYPE_COLOR[m.type],
         tag: m.key + ' · rango ' + m.lvl + ' > ' + (m.lvl + 1),
-        title: m.name, desc: upText(m) + ratioText(d) + ' · daño ' + DT_NAME[m.dt],
+        title: m.name, desc: upText(m) + ratioText(d, skAt(d, m.lvl) * (m.dmgK || 1)) + (d.noDmg ? ' · no hace daño' : ' · daño ' + DT_NAME[m.dt]),
         apply: () => G.Kit.rankUp(m)
       });
     }
