@@ -109,4 +109,15 @@ MONSTERS = [
     dict(id=493,  name='Hecarim',                 base=493, bst=720, types=['ghost'],  rules=[('d7dfdf', '3a5a60'), ('dfb700', '30e0a0')]),
 ]
 
+# Armadura y resistencia mágica de cada monstruo (suben con el reloj, ver
+# lol/js/lol-stats.js). Los súbditos, poca; los Krugs, mucha armadura; los
+# espectros, mucha resistencia mágica...
+RESIST = {
+    2001: (20, 10), 2002: (10, 20), 2003: (10, 10), 2004: (40, 10), 2005: (15, 15), 2006: (15, 15),
+    2007: (35, 25), 2008: (15, 30), 2009: (20, 20), 2010: (15, 40), 2011: (50, 15), 2012: (25, 20),
+    2013: (10, 30), 2014: (45, 45), 2015: (50, 35), 2016: (40, 25), 2017: (20, 35), 2018: (20, 45),
+    2019: (30, 55), 2020: (55, 25), 2021: (15, 60), 2022: (65, 20), 2023: (30, 30), 2024: (20, 55),
+    2031: (40, 40), 2032: (35, 45), 2034: (60, 30), 2033: (30, 50), 2035: (60, 60), 2036: (55, 55),
+}
+
 SKIN_HUE = 150   # aspecto "de Prestigio" de los campeones: tono girado

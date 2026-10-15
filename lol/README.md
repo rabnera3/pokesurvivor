@@ -20,7 +20,45 @@ python -m http.server -d lol/dist     # jugar en http://localhost:8000
 | Campeones | **Poco a poco** hasta tenerlos todos. |
 | Gacha | Se mantiene (tickets ganados jugando, sin dinero). |
 
-## Cómo está hecho
+## Sistema de League of Legends (desde el 15-10-2026, 2.ª versión)
+
+Petición del dueño: kit propio de cada campeón que se desbloquea por nivel, subir
+de nivel más difícil, mejoras que sean de tus habilidades, pasiva y objetos de tu
+campeón, evoluciones que añadan cosas nuevas, estadísticas de LoL y enemigos de LoL.
+
+| Parte | Cómo funciona | Dónde |
+|---|---|---|
+| **Estadísticas** | DA, PH, armadura, RM, vel. de ataque, celeridad, crítico, robo de vida, omnivampirismo, penetraciones, velocidad, regeneración; crecen por nivel como en LoL (vida y DA de LoL entre ~6) | `js/lol-stats.js` |
+| **Daño** | físico (contra armadura), mágico (contra RM) o verdadero; `100/(100+resistencia)`. Los enemigos también tienen armadura y RM (cada monstruo la suya, sube con el reloj) y te pegan físico o mágico | `js/lol-stats.js`, `tools/roster.py` (RESIST) |
+| **Kit** | ataque básico siempre (cuerpo a cuerpo o a distancia, con la vel. de ataque) + una habilidad activa (Q/W/E, se cambia con 1-3) + la R, que se lanza sola al recargarse | `js/engine/combat.js` |
+| **Desbloqueo** | Q al empezar, W al nivel 3, E al 6 y R al 10. Rangos: Q/W/E hasta 5 (el rango r pide nivel 2r−1), R hasta 3 (niveles 10/14/18) | `js/lol-kits.js` (G.Kit) |
+| **Subir de nivel** | cuesta un 15 % más por nivel que en PokéSurvivor (el nivel 10, ×2,35) | `js/engine/player.js` |
+| **Cartas** | subir de rango una habilidad, mejorar la pasiva (3 niveles), objeto de tu campeón (uno cada 3 niveles; hasta 6), evolución, fragmentos de runa o poción | `js/engine/levelup.js` |
+| **Objetos** | 40 de LoL con sus estadísticas y su efecto único (Filo del Infinito, Fuerza de Trinidad, Rabadon, Zhonya, Warmog...); sólo salen los que van con tu campeón (etiquetas) | `js/lol-items.js` |
+| **Evoluciones** | habilidad a rango máximo + un objeto concreto → carta dorada con mecánica nueva (la E de Garen se hace un 50 % más grande y rompe armadura...) | `evo` en `js/lol-kits.js` |
+| **Enemigos** | súbditos, monstruos de la jungla, criaturas del Vacío, dragones, Heraldo y Barón, y **campeones enemigos** (desde el minuto 3:30, cada 80-110 s; sueltan objeto) | `tools/roster.py`, `js/lol-elites.js` |
+
+Cada habilidad usa una de las 15 formas de atacar del motor como base
+(proyectil, cuerpo a cuerpo, rayo, órbita, nova, aura, bumerán, cadena, minas,
+meteoros, torreta, embestida, rastro, cono, mejora) con sus números y
+mecánicas añadidas: aturdir, atraer, ejecutar, curarse con el daño, romper
+armadura, más daño a aislados o ralentizados, críticos, lanzamientos
+repetidos, cada 3.er lanzamiento distinto, estallidos, golpe al aterrizar,
+escudos, invulnerabilidad, recarga al matar y crecer (Cho'Gath).
+
+### Pruebas
+
+```
+node lol/tools/bench.js http://localhost:8000/ <campeón> [nivel] [objetos]   # daño de cada habilidad, normal y evolucionada
+TAKEN=0.3 node lol/tools/sim.js http://localhost:8000/ <campeón> [minutos]  # partida entera con un bot
+```
+
+`bench.js` pone muñecos fijos alrededor y mide cada habilidad por separado (y
+saca capturas). `sim.js` juega una partida acelerada (tiempo virtual, sin
+dibujar) con un bot; el bot esquiva peor que una persona, por eso `TAKEN` baja
+el daño que recibe (usar el mismo valor para comparar).
+
+## Cómo está hecho (1.ª versión)
 
 | PokéSurvivor | RuneSurvivor | Dónde |
 |---|---|---|

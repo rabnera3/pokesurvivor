@@ -52,7 +52,13 @@ EN = {
     'Alma Infernal': 'Infernal Soul', 'Tormenta Oceánica': 'Ocean Storm', 'Tormenta de Shurima': 'Shuriman Sandstorm',
     'Ventisca de Freljord': 'Freljord Blizzard', 'Niebla Negra': 'Black Mist',
     'Bufo Rojo': 'Red Buff', 'Celeridad': 'Haste', 'Bufo Azul': 'Blue Buff',
-    'Cofre Hextech · {x}': 'Hextech Chest · {x}', '{x} campeones': '{x} champions',
+    'Cofre Hextech · {x}': 'Hextech Chest · {x}',
+    '¡Campeón enemigo: {x}!': 'Enemy champion: {x}!', '¡Has derrotado a {x}!': 'You defeated {x}!', '¡Objeto! {x}': 'Item! {x}',
+    'Inventario lleno: lo conviertes en experiencia': 'Inventory full: turned into experience', '¡Nueva habilidad! {x} · {x}': 'New ability! {x} · {x}',
+    'Fuerza adaptable': 'Adaptive force', 'Celeridad': 'Ability haste', 'Velocidad de ataque': 'Attack speed', 'Vitalidad': 'Vitality',
+    'Armadura': 'Armor', 'Resistencia mágica': 'Magic resist', 'Crítico': 'Critical strike', 'Poción de vida': 'Health potion',
+    'Fragmento': 'Shard', 'Consumible': 'Consumable', 'PASIVA · {x} > {x}': 'PASSIVE · {x} > {x}', 'Objeto · {x}': 'Item · {x}',
+    'Evoluciona {x}': 'Evolves {x}', 'EVOLUCIÓN · {x}': 'EVOLUTION · {x}', '{x} · rango {x} > {x}': '{x} · rank {x} > {x}', '{x} campeones': '{x} champions',
     '4 regiones · campeones y Prestigios': '4 regions · champions and Prestige skins',
 }
 
@@ -119,6 +125,32 @@ PATCHES = [
     ('js/systems/interact.js', "id: 'dmg', name: 'Furia'", "id: 'dmg', name: 'Bufo Rojo'"),
     ('js/systems/interact.js', "id: 'spd', name: 'Rayo'", "id: 'spd', name: 'Celeridad'"),
     ('js/systems/interact.js', "id: 'cd', name: 'Prisa'", "id: 'cd', name: 'Bufo Azul'"),
+    # ---- League of Legends: kit, estadísticas, objetos (lol/js/lol-*.js y lol/js/engine/) ----
+    # El kit lo prepara el jugador al nacer (G.Kit.init); sin "Repertorio" de movimientos.
+    ('js/game.js', "    pl.addMove(G.startMoveOf(mon.dex));\n", ""),
+    ('js/game.js', "    if (perks.startMoves >= 2) {", "    if (false) {"),
+    # Objetos de jefes y cofres: uno de LoL que vaya con tu campeón.
+    ('js/game.js', "  function offerItem(id) {\n", "  function offerItem(id) {\n    if (G.LoL) { G.LoL.takeItem(pl); return; }\n"),
+    ('js/game.js', "get state() { return state; }, get player() { return pl; },", "get state() { return state; }, get player() { return pl; }, get time() { return time; },"),
+    # Enemigos: armadura y resistencia mágica; avisar al jugador de cada muerte (pasivas y objetos).
+    ('js/entities/enemy.js', "      this.behavior = def.behavior;\n",
+                             "      this.behavior = def.behavior;\n      const rs = G.LoL.resist(def, (G.Game && G.Game.time) || 0, boss);\n      this.ar = rs.ar; this.mr = rs.mr;\n"),
+    ('js/entities/enemy.js', "          pl.kills++;\n", "          pl.kills++;\n          if (pl.onKill) pl.onKill(e);\n"),
+    ('js/data/enemies.js', "      dex: p.dex, name: p.name, behavior,", "      dex: p.dex, name: p.name, behavior, ar: p.ar, mr: p.mr,"),
+    ('js/data/enemies.js', "        at: slot.at, dex: p.dex, name: p.name,", "        at: slot.at, dex: p.dex, name: p.name, ar: p.ar, mr: p.mr,"),
+    # HUD: recarga real (celeridad), letra de cada habilidad, objetos y R (lol/js/lol-hud.js).
+    ('js/ui/hud.js', "const cdOf = m => m.kind === 'orbit' ? 0 : G.U.clamp(m.t / (m.cd * pl.cdMul), 0, 1);",
+                     "const cdOf = m => m.kind === 'orbit' ? 0 : G.U.clamp(m.t / (m.cdEff || m.cd * pl.cdMul), 0, 1);"),
+    ('js/ui/hud.js', "      ctx.fillText(String(i + 1), x + 3, y + 10);", "      ctx.fillText(m.key ? (i + 1) + ' ' + m.key : String(i + 1), x + 3, y + 10);"),
+    ('js/ui/hud.js', "      const bx = sx + totalW + 12, by = sy + S / 2 - 12;", "      const bx = G.LoL.hudRight || sx + totalW + 12, by = sy + S / 2 - 12;"),
+    ('js/ui/hud.js', "    {\n      const ix = sx - S - 18, iy = sy;", "    if (G.LoL) G.LoL.hud(ctx, pl, sx, sy, S, totalW, F, roundRect);\n    else {\n      const ix = sx - S - 18, iy = sy;"),
+    ('js/entities/vfx.js', "const v = MOVE[m.id] || {};", "const v = MOVE[m.vfx || m.id] || {};"),
+    # Las curanderas curan a los jefes sólo un cuarto (con varias, un jefe no moría nunca).
+    ('js/entities/enemy.js', "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k);", "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k * (e.boss ? 0.25 : 1));"),
+    # Campeones enemigos (lol/js/lol-elites.js).
+    ('js/game.js', "    G.Events.reset();\n", "    G.Events.reset();\n    if (G.LoLElites) G.LoLElites.reset();\n"),
+    ('js/game.js', "    G.Events.update(dt, all, time);\n", "    G.Events.update(dt, all, time);\n    if (G.LoLElites && (!coop || G.Coop.isHost)) G.LoLElites.update(dt, all, time);\n"),
+    ('js/ui/run-ui.js', "    G.UI.show('scr-pause');\n", "    const pe = document.getElementById('pause-lol');\n    if (pe && G.LoL) pe.innerHTML = G.LoL.statsHtml(G.Game.player);\n    G.UI.show('scr-pause');\n"),
 ]
 
 # Archivos del motor que se sustituyen enteros.
@@ -127,9 +159,15 @@ REPLACE = {
     'js/data/sprites-meta.js': '',      # va dentro de lol-data.js
 }
 # Scripts propios que se meten detrás de uno del motor.
+# Copias del motor con lo de LoL (sustituyen al archivo entero).
+ENGINE = {
+    'js/entities/player.js': 'lol/js/engine/player.js',
+    'js/systems/combat.js': 'lol/js/engine/combat.js',
+    'js/systems/levelup.js': 'lol/js/engine/levelup.js',
+}
 INSERT_AFTER = {
     'js/data/lang-en.js': ['lol/js/lol-skin.js'],
-    'js/systems/hazards.js': ['lol/js/lol-game.js'],
+    'js/systems/hazards.js': ['lol/js/lol-stats.js', 'lol/js/lol-items.js', 'lol/js/lol-kits.js', 'lol/js/lol-hud.js', 'lol/js/lol-elites.js', 'lol/js/lol-game.js'],
 }
 
 CHANGELOG = """G.CHANGELOG = [
@@ -206,6 +244,8 @@ def data_js(dex, meta_out):
                 e[k] = m[k]
         if m['id'] in SPECIAL:
             e['special'] = True
+        if m['id'] in roster.RESIST:
+            e['ar'], e['mr'] = roster.RESIST[m['id']]
         mons.append(e)
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(',', ':'))
     lines = ['/* ============ lol-data.js — GENERADO por lol/tools/build.py, no editar a mano ============',
@@ -231,6 +271,8 @@ def app_js(data):
     src = {f: read(f) for f in files}
     for f, txt in REPLACE.items():
         src[f] = txt
+    for f, mine in ENGINE.items():
+        src[f] = read(mine)
     src['js/data/changelog.js'] = CHANGELOG
     for f, old, new in PATCHES:
         n = src[f].count(old)
@@ -269,6 +311,10 @@ def page(dev):
         ('Sobrevive a las hordas con tu compañero Pokémon', 'Sobrevive a las hordas con tu campeón'),
         ('9 regiones · Pokémon y shinies', '4 regiones · campeones y Prestigios'),
         ('PokéSurvivor', 'RuneSurvivor'),
+        ('<p id="pause-coop" class="note hidden">', '<div id="pause-lol"></div>\n    <p id="pause-coop" class="note hidden">'),
+        ('<kbd>1</kbd>–<kbd>4</kbd> movimiento', '<kbd>1</kbd>–<kbd>3</kbd> habilidad (la R va sola)'),
+        ('</head>', '<style>.lol-stats{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:13px;text-align:left;margin:10px 0 2px}'
+                    '.lol-stats div{display:flex;justify-content:space-between;gap:8px}.lol-stats b{color:#ffd23f}</style>\n</head>'),
     ]
     for a, b in rep:
         html = html.replace(a, b)

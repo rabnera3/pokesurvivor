@@ -30,7 +30,8 @@ G.Skin = (() => {
       'Pokémon': 'Campeones',
       'LA SENTENCIA': 'LA CARGA', 'DE ARCEUS': 'DE LA RUINA',
       '¡Marea de Pokémon!': '¡Oleada de súbditos!',
-      'Entra en la mazmorra': 'Entra en la Grieta'
+      'Entra en la mazmorra': 'Entra en la Grieta',
+      'WASD moverse  ·  1-4 / Q / E o clic en un ataque para cambiarlo  ·  Esc pausa': 'WASD moverse  ·  1-3 o clic en una habilidad para cambiarla (la R va sola)  ·  Esc pausa'
     },
     patterns: {
       'Derrota a {x} Pokémon': 'Derrota a {x} enemigos',
@@ -45,7 +46,8 @@ G.Skin = (() => {
       '¡Otro {x} shiny! (+300 monedas)': '¡Otro {x} de Prestigio! (+300 monedas)',
       '{x} shiny es ahora tu compañero': '{x} de Prestigio es ahora tu compañero',
       '¡{x} shiny te esperaba en la grieta!': '¡{x} de Prestigio te esperaba en la grieta!',
-      '¡{x} acude a la Sentencia!': '¡{x} acude a la Ruina!'
+      '¡{x} acude a la Sentencia!': '¡{x} acude a la Ruina!',
+      '¡{x} salvaje apareció!': '¡Ha aparecido {x}!'
     },
     words: {
       'PokéSurvivor': 'RuneSurvivor', 'Pokémonedas': 'Esencia Azul', 'Pokédex': 'Colección',
@@ -70,7 +72,8 @@ G.Skin = (() => {
       'Defeat {x} Pokémon.': 'Defeat {x} enemies.', 'Own {x} Pokémon.': 'Own {x} champions.',
       'Own all {x} Pokémon in the game.': 'Own all {x} champions in the game.',
       'Survive {x} minutes with a {x}-type Pokémon': 'Survive {x} minutes with a {x} champion',
-      'A shiny {x} is nearby!': 'Prestige {x} is nearby!', 'You got a shiny {x}!': 'You got Prestige {x}!'
+      'A shiny {x} is nearby!': 'Prestige {x} is nearby!', 'You got a shiny {x}!': 'You got Prestige {x}!',
+      'A wild {x} appeared!': '{x} has appeared!'
     },
     words: {
       'PokéSurvivor': 'RuneSurvivor', 'PokéCoins': 'Blue Essence', 'Pokédex': 'Collection',
