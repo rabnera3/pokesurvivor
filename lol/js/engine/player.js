@@ -217,7 +217,10 @@ G.Player = class Player {
       this.attackFace = 0.3;
       return;
     }
-    const anim = { melee: 'Attack', beam: 'Shoot', projectile: 'Shoot', nova: 'Attack',
+    // Si el sprite del campeón tiene una animación propia para esta habilidad
+    // (hojas Q.png, W.png...), se usa esa; si no, la de PMD según el tipo.
+    const own = m.key && G.Sprites.meta(this.dex) && G.Sprites.meta(this.dex).a[m.key] ? m.key : null;
+    const anim = own || { melee: 'Attack', beam: 'Shoot', projectile: 'Shoot', nova: 'Attack',
                    aura: 'Charge', buff: 'Charge', orbit: 'Charge', boomerang: 'Shoot', chain: 'Shoot',
                    mine: 'Charge', meteor: 'Charge', turret: 'Charge', dash: 'Attack', trail: 'Walk', cone: 'Shoot' }[m.kind] || 'Attack';
     // Las familias nuevas suenan como la parecida de las de siempre.

@@ -100,7 +100,12 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     if (shot) {
       await page.evaluate(() => __sim.fast(false));
       await page.waitForTimeout(250);
-      await page.screenshot({ path: shot });
+      // SHOTS=n: n capturas seguidas (para ver las animaciones y efectos)
+      const N = +(process.env.SHOTS || 1);
+      for (let i = 0; i < N; i++) {
+        await page.screenshot({ path: N > 1 ? shot.replace('.png', `-${i}.png`) : shot });
+        if (i < N - 1) await page.waitForTimeout(+(process.env.SHOT_GAP || 90));
+      }
       await page.evaluate(() => __sim.fast(true));
     }
     return page.evaluate(k => {

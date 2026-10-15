@@ -26,6 +26,9 @@ OUT = os.path.join(LOL, 'dist')
 sys.path.insert(0, HERE)
 import roster
 from recolor import transform, hue_shift, recolor_image, hex2rgb
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pixel'))
+import doll                    # noqa: E402
+import champs as pixel_champs  # noqa: E402
 
 SPECIAL = {52, 1000, 493}          # el motor los busca por número (poro ladrón, poro dorado, la Ruina)
 
@@ -64,6 +67,13 @@ EN = {
 
 # (archivo, texto exacto, nuevo). Cada uno tiene que encajar UNA vez.
 PATCHES = [
+    # Sprites dibujados (lol/tools/pixel): el hueco del fotograma es más grande
+    # que el muñeco; el radio y la altura salen de 'bw'/'bh' (los del Pokémon
+    # base, para no cambiar el balance de golpes).
+    ('js/core/sprites.js', "for (const a of ANIMS) { const s = sheet(d, a, shiny); if (s) hs.push(s); }",
+     "for (const a of (meta(d) ? Object.keys(meta(d).a) : ANIMS)) { const s = sheet(d, a, shiny); if (s) hs.push(s); }"),
+    ('js/core/sprites.js', "    const w = m ? m.w : 32;\n", "    const mm = meta(dex), w = mm && mm.bw ? mm.bw : m ? m.w : 32;\n"),
+    ('js/core/sprites.js', "    return (m ? m.ay : 24) * PX * scale;", "    const mm = meta(dex);\n    return (mm && mm.bh ? mm.bh : m ? m.ay : 24) * PX * scale;"),
     # Textos: la "piel" de Runaterra también en español (ver lol/js/lol-skin.js).
     ('js/core/i18n.js', "if (lang === 'es' || !s || typeof s !== 'string') return s;", "if (!s || typeof s !== 'string') return s;"),
     ('js/core/i18n.js', "    let r = core(s);", "    let r = lang === 'es' ? s : core(s);\n    if (G.Skin) r = G.Skin.apply(r, lang);"),
@@ -144,7 +154,7 @@ PATCHES = [
     ('js/ui/hud.js', "      ctx.fillText(String(i + 1), x + 3, y + 10);", "      ctx.fillText(m.key ? (i + 1) + ' ' + m.key : String(i + 1), x + 3, y + 10);"),
     ('js/ui/hud.js', "      const bx = sx + totalW + 12, by = sy + S / 2 - 12;", "      const bx = G.LoL.hudRight || sx + totalW + 12, by = sy + S / 2 - 12;"),
     ('js/ui/hud.js', "    {\n      const ix = sx - S - 18, iy = sy;", "    if (G.LoL) G.LoL.hud(ctx, pl, sx, sy, S, totalW, F, roundRect);\n    else {\n      const ix = sx - S - 18, iy = sy;"),
-    ('js/entities/vfx.js', "const v = MOVE[m.id] || {};", "const v = MOVE[m.vfx || m.id] || {};"),
+    ('js/entities/vfx.js', "const v = MOVE[m.id] || {};", "const v = (G.VFX.LOL && G.VFX.LOL[m.vfx]) || MOVE[m.vfx || m.id] || {};"),
     # Las curanderas curan a los jefes sólo un cuarto (con varias, un jefe no moría nunca).
     ('js/entities/enemy.js', "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k);", "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k * (e.boss ? 0.25 : 1));"),
     # Los escuderos dan a los jefes un escudo pequeño (era el 35 % de su vida cada 6 s).
@@ -175,7 +185,7 @@ ENGINE = {
 }
 INSERT_AFTER = {
     'js/data/lang-en.js': ['lol/js/lol-skin.js'],
-    'js/systems/hazards.js': ['lol/js/lol-stats.js', 'lol/js/lol-items.js', 'lol/js/lol-kits.js', 'lol/js/lol-hud.js', 'lol/js/lol-elites.js', 'lol/js/lol-game.js'],
+    'js/systems/hazards.js': ['lol/js/lol-stats.js', 'lol/js/lol-items.js', 'lol/js/lol-kits.js', 'lol/js/lol-fx.js', 'lol/js/lol-hud.js', 'lol/js/lol-elites.js', 'lol/js/lol-game.js'],
 }
 
 CHANGELOG = """G.CHANGELOG = [
@@ -211,10 +221,30 @@ def recolor_fn(rules, skin=False):
 
 # ---------------------------------------------------------------- pasos
 
+def build_pixel(e, base):
+    """Campeón dibujado en código (lol/tools/pixel): hojas propias y su aspecto de Prestigio."""
+    ch = pixel_champs.CHAMPS[e['id']]
+    m = doll.meta_for(ch)
+    m['bw'], m['bh'] = base['a']['Idle']['w'], base['a']['Idle']['ay']
+    variants = [('', ch)]
+    if not e.get('leg'):
+        # Prestigio: la ropa, el arma y los efectos cambian de color; la piel, no.
+        variants.append(('s/', doll.repaint(ch, lambda c: hue_shift(c, roster.SKIN_HUE))))
+        m['sh'] = 1
+    for sub, spec in variants:
+        d = os.path.join(OUT, 'assets', 'pokemon', str(e['id']), sub)
+        os.makedirs(d, exist_ok=True)
+        for anim in doll.anims_of(spec):
+            doll.render_sheet(spec, anim).save(os.path.join(d, anim + '.png'), optimize=True)
+    return m
+
 def build_sprites(entries, meta):
     out_meta = {}
     for e in entries:
         base = meta[e['base']]
+        if e['id'] in pixel_champs.READY and e.get('champ'):
+            out_meta[e['id']] = build_pixel(e, base)
+            continue
         m = {'s': base['s'], 'a': base['a']}
         if base.get('hv'):
             m['hv'] = 1

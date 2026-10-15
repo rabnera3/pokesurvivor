@@ -85,6 +85,7 @@ G.Combat = (() => {
 
   /** Lo que pasa al lanzar una habilidad (además del golpe). */
   function onCast(pl, m) {
+    if (G.LoLFX) G.LoLFX.cast(pl, m);
     if (ghost) return;
     if (m.self) pl.addBuff(m.self.stat, m.self.amount, m.self.dur, m.self.stacks || 1);
     if (m.shield || m.shieldR) pl.addShield((m.shield || 0) + (m.shieldR || 0) * pl.maxHp + (m.shieldAp || 0) * pl.st.ap);
