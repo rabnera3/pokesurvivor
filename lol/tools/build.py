@@ -67,6 +67,11 @@ EN = {
 
 # (archivo, texto exacto, nuevo). Cada uno tiene que encajar UNA vez.
 PATCHES = [
+    # Destello al recibir golpe: suave (blanco al 55 % encima del sprite). El
+    # blanco sólido, con habilidades que pegan a muchos a la vez (Justicia
+    # Demaciana...), dejaba manchas blancas enormes sobre los grupos.
+    ('js/entities/enemy.js', "this.anim.draw(ctx, this.x, this.y - lift, { flash: this.flash > 0, alpha });",
+     "this.anim.draw(ctx, this.x, this.y - lift, { flash: this.flash > 0, softFlash: true, alpha });"),
     # Sprites dibujados (lol/tools/pixel): el hueco del fotograma es más grande
     # que el muñeco; el radio y la altura salen de 'bw'/'bh' (los del Pokémon
     # base, para no cambiar el balance de golpes).
@@ -229,7 +234,7 @@ def build_pixel(e, base):
     variants = [('', ch)]
     if not e.get('leg'):
         # Prestigio: la ropa, el arma y los efectos cambian de color; la piel, no.
-        variants.append(('s/', doll.repaint(ch, lambda c: hue_shift(c, roster.SKIN_HUE))))
+        variants.append(('s/', doll.prestige(ch, lambda c: doll.repaint(c, lambda x: hue_shift(x, roster.SKIN_HUE)))))
         m['sh'] = 1
     for sub, spec in variants:
         d = os.path.join(OUT, 'assets', 'pokemon', str(e['id']), sub)

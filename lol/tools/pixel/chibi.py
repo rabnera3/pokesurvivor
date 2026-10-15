@@ -22,6 +22,16 @@ def art(ch):
     name = ch.get('art')
     if not name:
         return None
+    if ch.get('_prestige'):
+        key = (name, 'prestige')
+        if key not in _ART:
+            base = art(dict(ch, _prestige=None, _tint=None))
+            import types
+            m = types.SimpleNamespace(**{k: getattr(base, k) for k in dir(base) if not k.startswith('__')})
+            m.PAL = dict(base.PAL, **getattr(base, 'PRESTIGE', {}))
+            m.PALC = {k: hexc(v) for k, v in m.PAL.items()}
+            _ART[key] = m
+        return _ART[key]
     tint = ch.get('_tint')
     if tint:
         key = (name, id(tint))
@@ -57,6 +67,55 @@ def art(ch):
             setattr(m, nm[:-2], full)
         _ART[name] = m
     return _ART[name]
+
+
+def limb_grid(a, length):
+    """Brazo de la pieza ARM (vertical, hombro arriba) estirado a 'length' filas:
+    se repiten las filas marcadas en ARM_REPEAT."""
+    rows = list(a.ARM)
+    rep_i = getattr(a, 'ARM_REPEAT', len(rows) - 2)
+    n = max(3, round(length))
+    while len(rows) < n:
+        rows.insert(rep_i, rows[rep_i])
+    while len(rows) > n and len(rows) > 3:
+        rows.pop(rep_i)
+    return rows
+
+
+def blit_rot(pen, a, grid, px_, py_, ang, dark=False):
+    """Pinta una pieza vertical (pivote arriba en el centro) girada 'ang' grados
+    (90 = hacia abajo, 0 = derecha). Se amplía ×8, se gira sin suavizar y se
+    vuelve a reducir tomando el centro de cada bloque: los píxeles siguen
+    siendo los dibujados, sin emborronarse."""
+    from PIL import Image
+    w, h = len(grid[0]), len(grid)
+    S = 8
+    src = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    for y, row in enumerate(grid):
+        for x, c in enumerate(row):
+            if c == '.':
+                continue
+            if dark and c != 'K':
+                c = DARKER.get(c, c)
+            src.putpixel((x, y), a.PALC[c])
+    big = src.resize((w * S, h * S), Image.NEAREST)
+    R = (h + 2) * S
+    canvas = Image.new('RGBA', (R * 2, R * 2), (0, 0, 0, 0))
+    canvas.paste(big, (R - w * S // 2, R))
+    rot = canvas.rotate(-(ang - 90), center=(R, R), resample=Image.NEAREST)
+    n = (R * 2) // S
+    small = Image.new('RGBA', (n, n), (0, 0, 0, 0))
+    rp, sp_ = rot.load(), small.load()
+    for y in range(n):
+        for x in range(n):
+            sp_[x, y] = rp[x * S + S // 2, y * S + S // 2]
+    ox = round(pen.cx + px_) - n // 2
+    oy = round(pen.fy + py_) - n // 2
+    pen.img.alpha_composite(small, (ox, oy)) if 0 <= ox and 0 <= oy and ox + n <= pen.w and oy + n <= pen.h else _paste_clip(pen.img, small, ox, oy)
+
+
+def _paste_clip(dst, src, ox, oy):
+    dst.paste(src, (ox, oy), src)
 
 
 def blit(pen, a, grid, cx, top, flip=False, dark=False):
@@ -541,9 +600,14 @@ def draw_chibi(pen, ch, view, p, t):
         pen.rect(x - lw + fwd, hip - 1, x + lw + fwd, -2 - lift, legs_c)
         pen.rect(x - lw - 0.4 + fwd, -2.5 - lift, x + lw + 0.4 + fwd + (1 if side else 0), -lift, boots)
 
-    def arm(sx, sy, ang, length=6.0, col=arms_c, far=False):
+    def arm(sx, sy, ang, length=6.0, col=arms_c, far=False, fist=True):
         a = math.radians(ang)
         ex, ey = sx + math.cos(a) * length, sy + math.sin(a) * length
+        if A and hasattr(A, 'ARM'):
+            blit_rot(pen, A, limb_grid(A, length), sx, sy, ang, dark=far)
+            if fist:
+                blit(pen, A, A.FIST, ex, ey - 2, ex < lean, dark=far)
+            return ex, ey
         c = shade(col, 0.82) if far else col
         thick = max(3, round(3 * ch.get('armW', 1.0) * w))
         pen.line(sx, sy, ex, ey, shade(c, 0.75), thick)
@@ -658,6 +722,8 @@ def draw_chibi(pen, ch, view, p, t):
     def arm_to(sx, sy, tx, ty, far=False, fist=True):
         L = math.hypot(tx - sx, ty - sy) or 1
         ang = math.degrees(math.atan2(ty - sy, tx - sx))
+        if not fist and A and hasattr(A, 'ARM'):
+            return arm(sx, sy, ang, length=L, far=far, fist=False)
         if not fist:
             c = shade(arms_c, 0.82) if far else arms_c
             thick = max(3, round(3 * ch.get('armW', 1.0) * w))
@@ -850,6 +916,24 @@ def draw_chibi(pen, ch, view, p, t):
     wings(pen, ch, view, top, lean, t, over=True)
     back_hair_over(pen, ch, hx + sdx, hy, hs, view, hair)
     po = max(sh + 1.2, hs + 0.3) if ch.get('pauldronSize', 1.0) > 1.1 else sh + 0.5
+    def front_weapon():
+        a = (180 - wa_ang) if swing is not None else wa_ang
+        if swing is None and p['reach'] == 0 and p['raise_'] == 0 and not p['hurt']:
+            a = 180 - wa_ang
+        wang = a + (-grip if swing is not None else grip)
+        if p['reach'] > 0:
+            # estocada: de frente no se ve "hacia delante"; el arma sale en diagonal hacia arriba
+            a = 160 + p['reach'] * 25
+            wang = a + 15
+        if p['hurt']:
+            a, wang = 150, 215
+        hxx, hyy = arm(lean + wsx * 0.95, top + 2.5, a)
+        draw_weapon(pen, ch, hxx, hyy, wang, 1, p.get('smear'))
+
+    # al coger impulso (arma por encima de la cabeza) el arma va detrás de la cabeza
+    behind_head = front and not across and swing is not None and swing < -30
+    if behind_head:
+        front_weapon()
     pauldron(lean - po + sdx * 0.3, top + 2, far=view == 'front3q')
     pauldron(lean + po + sdx * 0.3, top + 2, far=view == 'back3q')
     head_full(pen, ch, hx + sdx, hy, hs, view, p['hurt'], p['glow'])
@@ -866,16 +950,5 @@ def draw_chibi(pen, ch, view, p, t):
             else:
                 pen.ellipse(hxx, hyy, 1.9, 1.9, hands, soft=True)
                 pen.ellipse(ox, hyy, 1.9, 1.9, hands, soft=True)
-        else:
-            a = (180 - wa_ang) if swing is not None else wa_ang
-            if swing is None and p['reach'] == 0 and p['raise_'] == 0 and not p['hurt']:
-                a = 180 - wa_ang
-            wang = a + (-grip if swing is not None else grip)
-            if p['reach'] > 0:
-                # estocada: de frente no se ve "hacia delante"; el arma sale en diagonal hacia arriba
-                a = 160 + p['reach'] * 25
-                wang = a + 15
-            if p['hurt']:
-                a, wang = 150, 215
-            hxx, hyy = arm(lean + wsx * 0.95, top + 2.5, a)
-            draw_weapon(pen, ch, hxx, hyy, wang, 1, p.get('smear'))
+        elif not behind_head:
+            front_weapon()

@@ -504,8 +504,10 @@ G.Combat = (() => {
       if (!G.Camera.sees(f.x, f.y, 200)) continue;
       if (f.kind === 'meteor' && f.t > 0) {
         const k = G.U.clamp(f.t / f.fall, 0, 1);
-        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x + (1 - k) * 40, f.y - (1 - k) * 170 - 6,
-                   { scale: 1.5, angle: Math.atan2(170, -40), frame: Math.floor(now * 12) });
+        // Las formas que no giran (la espada de Garen) caen rectas, de punta.
+        const dir = G.VFX.isDir(f.vis.proj);
+        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x + (dir ? (1 - k) * 40 : 0), f.y - (1 - k) * 170 - (dir ? 6 : 28),
+                   { scale: 1.5, angle: dir ? Math.atan2(170, -40) : 0, frame: Math.floor(now * 12) });
       } else if (f.kind === 'turret') {
         const fade = Math.min(1, (f.life - f.t) * 2, f.t * 5);
         const bob = Math.sin(now * 4 + f.x) * 2 - (f.kick > 0 ? 2 : 0);

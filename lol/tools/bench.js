@@ -39,7 +39,7 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
   await page.waitForFunction(() => window.G && G.Flow && G.DB && G.Game, null, { timeout: 30000 });
   await page.waitForTimeout(400);
 
-  const setup = await page.evaluate(([dex, lv, items, boss]) => {
+  const setup = await page.evaluate(([dex, lv, items, boss, rspam]) => {
     for (const id of ['tap-start', 'boot']) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
     G.DB.playAsGuest();
     const s = G.DB.save;
@@ -57,6 +57,7 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     pl.hp = pl.maxHp;
     // Muñecos: un grupo delante y unos pocos alrededor.
     window.__BOSS = boss;
+    window.__RSPAM = rspam;
     const def = { dex: 2015, name: 'Muñeco', behavior: 'tank', hp: 1e9, spd: 0, dmg: 0, xp: 0, ar: boss ? 56 : 30, mr: boss ? 56 : 30 };
     window.__dummies = () => {
       const all = G.EnemyMgr.all().filter(e => !e.dead);
@@ -77,8 +78,10 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     };
     window.__dummies();
     setInterval(window.__dummies, 20);
+    // RSPAM=1: la R sin recarga cada poco (para ver su animación y su efecto)
+    if (window.__RSPAM) setInterval(() => { const R = G.Game.player.abil.R; if (R) R.t = 0; }, 700);
     return { lv: pl.level, st: G.LoL.simInfo(pl), hp: pl.maxHp };
-  }, [DEX, LV, ITEMS, !!process.env.BOSS]);
+  }, [DEX, LV, ITEMS, !!process.env.BOSS, !!process.env.RSPAM]);
   if (setup.err) { console.log(JSON.stringify({ dex: DEX, setup, errors })); await browser.close(); return; }
 
   async function measure(key, secs, shot) {

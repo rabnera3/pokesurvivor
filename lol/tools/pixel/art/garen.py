@@ -205,3 +205,25 @@ LEG = [
 
 # Letras que no cambian de color en el aspecto de Prestigio (pelo, piel, ojos, contorno).
 KEEP = 'Kabcdstuwefm'
+
+# Brazo (vertical, hombro arriba): manga azul, codera dorada y brazal de acero.
+# Las filas desde ARM_REPEAT se repiten o se quitan para alargarlo o acortarlo.
+ARM = [
+    "K098K",
+    "K098K",
+    "K765K",
+    "K343K",
+    "K432K",
+    "K432K",
+    "K321K",
+]
+ARM_REPEAT = 4
+
+# Aspecto de Prestigio: armadura perla, ribetes de oro, tela blanca y gema azul.
+PRESTIGE = {
+    '1': '7a6a50', '2': 'cfc3a6', '3': 'f2eadb', '4': 'ffffff',
+    '5': '8a5a10', '6': 'e8b030', '7': 'fff0a0',
+    '8': '6a6458', '9': 'c4bcaa', '0': 'ece6d6', 'l': 'ffffff',
+    'o': '3aa0f0', 'p': 'b8e8ff',
+    'n': '6a5030', 'r': 'a07c50',
+}

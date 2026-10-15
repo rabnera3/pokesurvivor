@@ -171,7 +171,7 @@ G.Kit = (() => {
   K(86, {
     tags: ['fighter', 'tank', 'ad'], role: 'Luchador',
     base: { hp: 118, hpG: 17, ad: 11, adG: 0.75, ar: 36, arG: 4.2, mr: 32, mrG: 1.6, as: 0.63, asG: 0.036, ms: 112, regen: 0.5, regenG: 0.05 },
-    basic: { range: 'melee', type: 'steel', vfx: 'metal-claw' },
+    basic: { range: 'melee', type: 'steel', vfx: 'garen-aa' },
     passive: {
       name: 'Perseverancia', en: 'Perseverance',
       desc: ['Si no te golpean en 3 s, recuperas un 1 % de tu vida máxima por segundo.',

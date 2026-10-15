@@ -18,20 +18,21 @@ G.LoLFX = (() => {
 
   // ---------------- formas (miran a la derecha)
   Object.assign(G.VFX.SHAPES, {
-    // Espada gigante de Justicia Demaciana.
-    bigsword: { w: 36, h: 11, dir: true, gen(P) {
+    // Espada gigante de Justicia Demaciana, cayendo de punta (sin girar: así
+    // no se deforman los píxeles).
+    bigsword: { w: 13, h: 40, gen(P) {
       P.fill((x, y) => {
-        if (x < 10 || x > 34) return null;
-        const half = x < 29 ? 2.6 : 2.6 * (34 - x) / 5;
-        const d = y - 5;
+        if (y < 11 || y > 38) return null;
+        const half = y < 33 ? 2.7 : 2.7 * (38 - y) / 5;
+        const d = x - 6;
         if (Math.abs(d) > half) return null;
         return d === 0 ? 'w' : d < 0 ? 'l' : 'm';
       });
-      for (let y = 0; y <= 10; y++) P.set(8, y, y < 5 ? 'l' : 'm');
-      for (let y = 1; y <= 9; y++) P.set(9, y, 'd');
-      for (let x = 2; x <= 7; x++) for (let y = 4; y <= 6; y++) P.set(x, y, y === 4 ? 'm' : 'd');
-      for (let y = 3; y <= 7; y++) { P.set(0, y, 'm'); P.set(1, y, y < 5 ? 'l' : 'm'); }
-      P.set(5, 5, 'w');
+      for (let x = 0; x <= 12; x++) P.set(x, 9, x < 6 ? 'l' : 'm');
+      for (let x = 1; x <= 11; x++) P.set(x, 10, 'd');
+      for (let y = 2; y <= 8; y++) for (let x = 5; x <= 7; x++) P.set(x, y, x === 5 ? 'm' : 'd');
+      for (let x = 4; x <= 8; x++) { P.set(x, 0, 'm'); P.set(x, 1, x < 6 ? 'l' : 'm'); }
+      P.set(6, 5, 'w');
       P.outline();
     } },
     // Espada pequeña (la que gira en Juicio).
@@ -64,6 +65,7 @@ G.LoLFX = (() => {
 
   // ---------------- cómo se ve cada habilidad (ver vfx.js, MOVE)
   G.VFX.LOL = {
+    'garen-aa': { pal: 'blade' },
     'garen-q': { melee: 'impact', pal: 'demacia' },
     'garen-w': { aura: 'shield', pal: 'demacia', rise: true },
     'garen-e': { pal: 'blade' },
@@ -113,10 +115,19 @@ G.LoLFX = (() => {
         ctx.fillRect(snap(x + Math.cos(a + Math.PI) * R), snap(y + Math.sin(a + Math.PI) * R * 0.55), PX, PX);
       }
       ctx.globalAlpha = 1;
+      // Las dos espadas: hoja de píxeles en la rejilla (un sprite girado se deforma).
+      ctx.globalAlpha = step(k);
+      const D = G.VFX.PAL.demacia;
       for (const s of [0, Math.PI]) {
-        const a = a0 + s;
-        const sx = x + Math.cos(a) * R * 0.7, sy = y + Math.sin(a) * R * 0.38;
-        G.VFX.draw(ctx, 'sword', 'blade', sx, sy, { angle: a + Math.PI / 2, scale: 1.2, alpha: step(k) });
+        const a = a0 + s, ca = Math.cos(a), sa = Math.sin(a) * 0.55;
+        for (let d = R * 0.3; d <= R * 0.95; d += PX * 0.8) {
+          const u = (d - R * 0.3) / (R * 0.65);
+          const bx = x + ca * d, by = y + sa * d;
+          if (u < 0.12) { ctx.fillStyle = D[2]; ctx.fillRect(snap(bx - PX), snap(by - PX), PX * 3, PX * 3); continue; }
+          ctx.fillStyle = P[0]; ctx.fillRect(snap(bx), snap(by + PX), PX, PX);
+          ctx.fillStyle = u > 0.9 ? P[4] : P[3]; ctx.fillRect(snap(bx), snap(by), PX, PX);
+          if (u < 0.85) { ctx.fillStyle = P[2]; ctx.fillRect(snap(bx), snap(by - PX), PX, PX); }
+        }
       }
     },
     // Golpe Decisivo: media luna dorada y grietas en el suelo.

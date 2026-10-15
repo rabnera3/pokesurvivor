@@ -792,6 +792,22 @@ def repaint(ch, fn, keep=KEEP):
     return out
 
 
+def prestige(ch, fallback):
+    """Ficha del aspecto de Prestigio: la de 'prestige' de la ficha (colores
+    propios, también para las piezas dibujadas a mano) o, si no tiene, fallback."""
+    if not ch.get('prestige'):
+        return fallback(ch)
+
+    def merge(a, b):
+        out = dict(a)
+        for k, v in b.items():
+            out[k] = merge(a[k], v) if isinstance(v, dict) and isinstance(a.get(k), dict) else v
+        return out
+    out = merge(ch, ch['prestige'])
+    out['_prestige'] = True
+    return out
+
+
 def meta_for(ch):
     a = {}
     for anim, (n, dur) in anims_of(ch).items():
