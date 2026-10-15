@@ -40,6 +40,7 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
   await page.waitForTimeout(400);
 
   const setup = await page.evaluate(([dex, lv, items]) => {
+    for (const id of ['tap-start', 'boot']) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
     G.DB.playAsGuest();
     const s = G.DB.save;
     s.owned[dex] = 1; s.partner = dex;
