@@ -38,8 +38,8 @@ G.LoL = (() => {
    */
   function resist(def, t, boss) {
     const k = 1 + t / 1200;
-    const ar = (def.ar != null ? def.ar : 15) * k + (boss ? 20 : 0);
-    const mr = (def.mr != null ? def.mr : 15) * k + (boss ? 20 : 0);
+    const ar = (def.ar != null ? def.ar : 15) * k + (boss ? 10 : 0);
+    const mr = (def.mr != null ? def.mr : 15) * k + (boss ? 10 : 0);
     return { ar, mr };
   }
 

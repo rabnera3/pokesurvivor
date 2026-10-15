@@ -144,9 +144,11 @@ const TAKEN = +(process.env.TAKEN || 0.3);
       return { t: __sim.playT, state: G.Game.state, lv: pl.level, hp: Math.round(pl.hp), maxHp: Math.round(pl.maxHp),
                kills: pl.kills, bosses: pl.bosses, dead: pl.dead, enemies: G.EnemyMgr.count, dmg: Math.round(pl.dmgDealt),
                moves: pl.moves.map(m => m.id + ':' + m.lvl + (m.evolved ? '*' : '')).join(' '),
-               extra: G.LoL && G.LoL.simInfo ? G.LoL.simInfo(pl) : undefined };
+               extra: G.LoL && G.LoL.simInfo ? G.LoL.simInfo(pl) : undefined,
+               boss: (b => b ? { n: b.name, hp: Math.round(b.hp), max: b.maxHp, sh: Math.round(b.shield), d: Math.round(Math.hypot(b.x - pl.x, b.y - pl.y)), ar: Math.round(b.ar) } : null)(G.EnemyMgr.all().find(e => e.boss && !e.dead)),
+               act: pl.activeMove() ? pl.activeMove().key : null };
     });
-    const min = Math.floor(s.t / 60);
+    const min = Math.floor(s.t / (+process.env.EVERY || 60));
     if (min !== lastMin) {
       lastMin = min;
       const row = Object.assign({ min }, s); delete row.state;

@@ -147,6 +147,14 @@ PATCHES = [
     ('js/entities/vfx.js', "const v = MOVE[m.id] || {};", "const v = MOVE[m.vfx || m.id] || {};"),
     # Las curanderas curan a los jefes sólo un cuarto (con varias, un jefe no moría nunca).
     ('js/entities/enemy.js', "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k);", "e.hp = Math.min(e.maxHp, e.hp + e.maxHp * k * (e.boss ? 0.25 : 1));"),
+    # Los escuderos dan a los jefes un escudo pequeño (era el 35 % de su vida cada 6 s).
+    ('js/entities/enemy.js', "e.shield = Math.max(e.shield, e.maxHp * 0.35);", "e.shield = Math.max(e.shield, e.maxHp * (e.boss ? 0.06 : 0.35));"),
+    # Jefes (Heraldo, dragones, Barón): pelean de cerca. Si se quedaban a distancia
+    # disparando, un campeón cuerpo a cuerpo no los alcanzaba nunca.
+    ('js/data/enemies.js', "behavior: behaviorOf(p) === 'ranged' ? 'ranged' : (baseSpd(p) > 90 ? 'charger' : 'chase'),",
+                           "behavior: baseSpd(p) > 90 ? 'charger' : 'chase',"),
+    # Jefes con algo menos de vida (aquí se sube de nivel más despacio).
+    ('js/data/enemies.js', "hp: Math.round(slot.hp * 1.35)", "hp: Math.round(slot.hp * 1.1)"),
     # Campeones enemigos (lol/js/lol-elites.js).
     ('js/game.js', "    G.Events.reset();\n", "    G.Events.reset();\n    if (G.LoLElites) G.LoLElites.reset();\n"),
     ('js/game.js', "    G.Events.update(dt, all, time);\n", "    G.Events.update(dt, all, time);\n    if (G.LoLElites && (!coop || G.Coop.isHost)) G.LoLElites.update(dt, all, time);\n"),

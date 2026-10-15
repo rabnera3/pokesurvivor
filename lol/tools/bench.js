@@ -39,7 +39,7 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
   await page.waitForFunction(() => window.G && G.Flow && G.DB && G.Game, null, { timeout: 30000 });
   await page.waitForTimeout(400);
 
-  const setup = await page.evaluate(([dex, lv, items]) => {
+  const setup = await page.evaluate(([dex, lv, items, boss]) => {
     for (const id of ['tap-start', 'boot']) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
     G.DB.playAsGuest();
     const s = G.DB.save;
@@ -56,10 +56,11 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     for (const id of items) pl.addItem(id);
     pl.hp = pl.maxHp;
     // Muñecos: un grupo delante y unos pocos alrededor.
-    const def = { dex: 2015, name: 'Muñeco', behavior: 'tank', hp: 1e9, spd: 0, dmg: 0, xp: 0, ar: 30, mr: 30 };
+    window.__BOSS = boss;
+    const def = { dex: 2015, name: 'Muñeco', behavior: 'tank', hp: 1e9, spd: 0, dmg: 0, xp: 0, ar: boss ? 56 : 30, mr: boss ? 56 : 30 };
     window.__dummies = () => {
       const all = G.EnemyMgr.all().filter(e => !e.dead);
-      const want = [[45, 0], [55, 22], [55, -22], [72, 0], [78, 38], [78, -38], [98, 12], [98, -14], [-52, 0], [0, 54], [0, -54], [140, 0]];
+      const want = window.__BOSS ? [[55, 0]] : [[45, 0], [55, 22], [55, -22], [72, 0], [78, 38], [78, -38], [98, 12], [98, -14], [-52, 0], [0, 54], [0, -54], [140, 0]];
       const used = new Set(all.map(e => e.slot));
       for (let i = 0; i < want.length; i++) {
         if (used.has(i)) continue;
@@ -77,7 +78,7 @@ const ITEMS = itemsArg && itemsArg !== '-' ? itemsArg.split(',') : [];
     window.__dummies();
     setInterval(window.__dummies, 20);
     return { lv: pl.level, st: G.LoL.simInfo(pl), hp: pl.maxHp };
-  }, [DEX, LV, ITEMS]);
+  }, [DEX, LV, ITEMS, !!process.env.BOSS]);
   if (setup.err) { console.log(JSON.stringify({ dex: DEX, setup, errors })); await browser.close(); return; }
 
   async function measure(key, secs, shot) {
