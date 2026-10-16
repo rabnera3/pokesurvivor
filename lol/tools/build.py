@@ -67,6 +67,15 @@ EN = {
 
 # (archivo, texto exacto, nuevo). Cada uno tiene que encajar UNA vez.
 PATCHES = [
+    # Atlas: los campeones dibujados (lol/tools/pixel) llevan todas sus
+    # animaciones en una sola imagen (atlas.png); 'oy' es dónde empieza cada una.
+    # Así cada campeón son 2 archivos (normal y Prestigio) en vez de 22.
+    ('js/core/sprites.js', "    const k = dex + '/' + name + (shiny ? '/s' : '');",
+     "    const k = dex + '/' + (m && m.at ? 'atlas' : name) + (shiny ? '/s' : '');"),
+    ('js/core/sprites.js', "src: `assets/pokemon/${dex}/${shiny ? 's/' : ''}${name}.png` };",
+     "src: `assets/pokemon/${dex}/${shiny ? 's/' : ''}${m && m.at ? 'atlas' : name}.png` };"),
+    ('js/core/sprites.js', "const sx = Math.min(frame, m.n - 1) * m.w, sy = row * m.h;",
+     "const sx = Math.min(frame, m.n - 1) * m.w, sy = (m.oy || 0) + row * m.h;"),
     # Grietas (portales): al vencer al legendario, un objeto en vez de un vínculo.
     ('js/systems/rift.js', "      pl.bonds++;\n      G.FX.dmgText(pl.x, pl.y - pl.bodyH - 10, '¡Vínculo!', '#ff8ad8', true);",
      "      if (G.LoL) G.LoL.takeItem(pl); else pl.bonds++;\n      G.FX.dmgText(pl.x, pl.y - pl.bodyH - 10, G.LoL ? '¡Objeto!' : '¡Vínculo!', '#ff8ad8', true);"),
@@ -247,11 +256,19 @@ def build_pixel(e, base):
         # Prestigio: la ropa, el arma y los efectos cambian de color; la piel, no.
         variants.append(('s/', doll.prestige(ch, lambda c: doll.repaint(c, lambda x: hue_shift(x, roster.SKIN_HUE)))))
         m['sh'] = 1
+    m['at'] = 1
     for sub, spec in variants:
         d = os.path.join(OUT, 'assets', 'pokemon', str(e['id']), sub)
         os.makedirs(d, exist_ok=True)
-        for anim in doll.anims_of(spec):
-            doll.render_sheet(spec, anim).save(os.path.join(d, anim + '.png'), optimize=True)
+        sheets = [(anim, doll.render_sheet(spec, anim)) for anim in doll.anims_of(spec)]
+        W = max(im.width for _, im in sheets)
+        atlas = Image.new('RGBA', (W, sum(im.height for _, im in sheets)), (0, 0, 0, 0))
+        y = 0
+        for anim, im in sheets:
+            atlas.paste(im, (0, y))
+            m['a'][anim]['oy'] = y
+            y += im.height
+        atlas.save(os.path.join(d, 'atlas.png'), optimize=True)
     return m
 
 def build_sprites(entries, meta):
