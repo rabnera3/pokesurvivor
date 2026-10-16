@@ -11,9 +11,14 @@ CHAMPS = {
              prestige=dict(outfit='c4bcaa', legsColor='6a6458', boots='6a5030', glow='fff0a0',
                            cape=dict(color='ece6d6', inner='e8b030', trim='e8b030', emblem='e8b030'),
                            weapon=dict(color='f6d870', accent='ffffff', gem='3aa0f0'))),
-    103: dict(name='Ahri', body='chibi', blush='f08aa0', hairLen=10, skin='f2c8a8', hair='2a2238', hairStyle='long', ears=dict(kind='fox', color='2a2238', inner='ff8ab8'),
-              outfit='c8346e', outfit2='f4ece6', arms='f2c8a8', legsColor='f2c8a8', boots='c8346e', skirt='c8346e', chest='f4ece6',
-              tails=dict(n=5, color='f4ece6', tip='ffd0e4', len=9, w=2.0), weapon=dict(kind='orb', color='7fb4ff'), glow='ff8ad8', eyes='d8a020'),
+    103: dict(name='Ahri', body='chibi', art='ahri', width=0.9, legs=1.1, legW=0.9,
+              skin='fde0d6', hair='1f1c2a', hairStyle='long', eyes='1a1424',
+              outfit='d03a5a', arms='d03a5a', hands='fde0d6', legsColor='f6f4fb', boots='a62240',
+              fluffy=dict(color='f6f4fb', mid='d6d4e6', shadow='a6a2c0'),
+              weapon=dict(kind='orb', color='6ab8ff', armOut=30), glow='ff9ad8',
+              abil=dict(Q='throw', W='cast', E='throw', R='dash'),
+              prestige=dict(weapon=dict(color='ffd060'), glow='ffe08a',
+                            fluffy=dict(color='fff6e6', mid='f0dcb4', shadow='c8a878'))),
     157: dict(name='Yasuo', body='chibi', skin='c89a78', hair='3a2a22', hairStyle='ponytail',
               outfit='2c6a8c', outfit2='e8e0cc', arms='c89a78', legsColor='2a3448', boots='3a2a22', belt='e8e0cc', skirt='2c6a8c',
               weapon=dict(kind='katana', color='e8eef6', accent='3a2a22', grip=-25), glow='bfe8ff',
@@ -21,4 +26,4 @@ CHAMPS = {
 }
 
 # Los que ya están pulidos y entran en el juego (el resto sigue con el sprite repintado).
-READY = {86}
+READY = {86, 103}

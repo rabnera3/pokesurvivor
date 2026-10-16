@@ -67,6 +67,14 @@ EN = {
 
 # (archivo, texto exacto, nuevo). Cada uno tiene que encajar UNA vez.
 PATCHES = [
+    # Grietas (portales): al vencer al legendario, un objeto en vez de un vínculo.
+    ('js/systems/rift.js', "      pl.bonds++;\n      G.FX.dmgText(pl.x, pl.y - pl.bodyH - 10, '¡Vínculo!', '#ff8ad8', true);",
+     "      if (G.LoL) G.LoL.takeItem(pl); else pl.bonds++;\n      G.FX.dmgText(pl.x, pl.y - pl.bodyH - 10, G.LoL ? '¡Objeto!' : '¡Vínculo!', '#ff8ad8', true);"),
+    # Cofres: los objetos salen más en cofres (en las cartas de nivel, menos).
+    ('js/world/world.js', "      if (Math.random() < 0.08) G.Pickups.drop('item', p.x, p.y - 12, G.Items.roll());",
+     "      if (Math.random() < (G.LoL ? 0.35 : 0.08)) G.Pickups.drop('item', p.x, p.y - 12, G.Items.roll());"),
+    ('js/world/world.js', "      if (Math.random() < 0.5) G.Pickups.drop('item', p.x + 14, p.y - 14, G.Items.roll());",
+     "      if (G.LoL || Math.random() < 0.5) G.Pickups.drop('item', p.x + 14, p.y - 14, G.Items.roll());"),
     # Destello al recibir golpe: suave (blanco al 55 % encima del sprite). El
     # blanco sólido, con habilidades que pegan a muchos a la vez (Justicia
     # Demaciana...), dejaba manchas blancas enormes sobre los grupos.

@@ -224,6 +224,11 @@ def hair_cap(pen, ch, hx, hy, hs, view, hair):
 
 def back_hair(pen, ch, hx, hy, hs, view, hair, bob):
     """Pelo que cae por detrás de la espalda (se dibuja antes que el cuerpo)."""
+    a = art(ch)
+    if a and hasattr(a, 'BACK_HAIR'):
+        if view not in ('back', 'back3q'):
+            blit(pen, a, a.BACK_HAIR, hx - (3 if view == 'side' else 0), hy + 4)
+        return
     style = ch.get('hairStyle', 'short')
     if style == 'long':
         L = ch.get('hairLen', 12)
@@ -241,6 +246,10 @@ def back_hair(pen, ch, hx, hy, hs, view, hair, bob):
 def back_hair_over(pen, ch, hx, hy, hs, view, hair):
     style = ch.get('hairStyle', 'short')
     if view not in ('back', 'back3q'):
+        return
+    a = art(ch)
+    if a and hasattr(a, 'BACK_HAIR_OVER'):
+        blit(pen, a, a.BACK_HAIR_OVER, hx, hy + 5)
         return
     if style == 'long':
         L = ch.get('hairLen', 12)
@@ -403,7 +412,7 @@ HEAD_OF = {'front': ('HEAD_FRONT', False), 'front3q': ('HEAD_3Q', False), 'side'
            'back3q': ('HEAD_BACK', False), 'back': ('HEAD_BACK', False)}
 
 
-def head_full(pen, ch, hx, hy, hs, view, hurt, glow):
+def head_full(pen, ch, hx, hy, hs, view, hurt, glow, blink=False):
     a = art(ch)
     if a and hasattr(a, 'HEAD_FRONT'):
         name, flip = HEAD_OF[view]
@@ -421,6 +430,17 @@ def head_full(pen, ch, hx, hy, hs, view, hurt, glow):
                         pen.img.putpixel((x0 + ex + dx, y0 + ey + dy), sk)
                 for (dx, dy) in ((0, 0), (1, 1), (0, 2)) if s_ < 0 else ((1, 0), (0, 1), (1, 2)):
                     pen.img.putpixel((x0 + ex + dx, y0 + ey + dy), a.PALC['K'])
+        if blink and not hurt and view in ('front', 'front3q', 'side'):
+            # parpadeo: el ojo cerrado es una raya
+            eyes = getattr(a, 'EYES', {}).get(view, [])
+            x0 = round(pen.cx + hx - len(g[0]) / 2)
+            y0 = round(pen.fy + hy - len(g) // 2)
+            sk = a.PALC.get('t')
+            for ex, ey, s_ in eyes:
+                for dx in (0, 1):
+                    for dy in (0, 1, 2):
+                        pen.img.putpixel((x0 + ex + dx, y0 + ey + dy), sk)
+                    pen.img.putpixel((x0 + ex + dx, y0 + ey + 2), a.PALC['K'])
         if glow > 0.6 and view in ('front', 'front3q'):
             eyes = getattr(a, 'EYES', {}).get(view, [])
             x0 = round(pen.cx + hx - len(g[0]) / 2)
@@ -564,6 +584,35 @@ def extras(pen, ch, view, top, hip, lean, sdx, t):
         pen.line(x - 1.5, top, x - 3.5, top - 3, c, 1)
         pen.line(x + 1.5, top, x + 3.5, top - 3, c, 1)
         pen.px(x - 3.5, top - 3, shade(c, 1.3)); pen.px(x + 3.5, top - 3, shade(c, 1.3))
+
+
+def puff(pen, x, y, r, cols):
+    """Una bola de pelo esponjoso: sombra, medio, claro y brillo."""
+    sh, mid, lt = cols
+    pen.ellipse(x, y, r, r * 0.86, sh, light=False)
+    pen.ellipse(x - 0.5, y - 0.6, r - 0.8, r * 0.86 - 0.8, mid, light=False)
+    pen.ellipse(x - 1.1, y - 1.2, max(1, r - 2), max(1, r * 0.86 - 2), lt, light=False)
+    pen.px(x - r * 0.45, y - r * 0.45, (255, 255, 255, 255))
+
+
+def fluffy_tails(pen, ch, view, hip, lean, t):
+    """Colas de zorro blancas y esponjosas (Ahri): detrás, o delante si se ve de espaldas."""
+    tl = ch.get('fluffy')
+    cols = (hexc(tl.get('shadow', 'a6a2c0')), hexc(tl.get('mid', 'd6d4e6')), hexc(tl.get('color', 'f6f4fb')))
+    sw = math.sin(t * 6.28) * 1.0
+    if view == 'side':
+        pts = [(-12, hip - 8, 4.2), (-13, hip - 2, 4.0), (-9, hip + 1, 3.8), (-8, hip - 5, 4.8)]
+        pts = [(x + lean + sw * (1 if i % 2 else -1), y, r) for i, (x, y, r) in enumerate(pts)]
+    elif view in ('back', 'back3q'):
+        pts = [(-11, hip - 6, 4.0), (11, hip - 6, 4.0), (-12, hip, 3.8), (12, hip, 3.8),
+               (-6, hip - 2, 4.6), (6, hip - 2, 4.6), (0, hip - 4, 5.2)]
+        pts = [(x + lean + sw * (1 if x > 0 else -1), y, r) for x, y, r in pts]
+    else:
+        pts = [(-12, hip - 9, 3.8), (12, hip - 9, 3.8), (-13, hip - 3, 4.2), (13, hip - 3, 4.2),
+               (-9, hip + 1, 4.0), (9, hip + 1, 4.0), (-8, hip - 6, 4.6), (8, hip - 6, 4.6)]
+        pts = [(x + lean + sw * (1 if x > 0 else -1), y, r) for x, y, r in pts]
+    for x, y, r in sorted(pts, key=lambda p: p[1]):
+        puff(pen, x, y, r, cols)
 
 
 # ---------------------------------------------------------------- cuerpo
@@ -759,16 +808,16 @@ def draw_chibi(pen, ch, view, p, t):
             if p.get('both'):
                 tx, ty = lean + 2, hy - hs * 0.9
                 draw_weapon(pen, ch, tx, ty, -90, 1)
-                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'])
+                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
                 arm_to(lean + 1, sy, tx, ty, fist=False)
                 fist_at(tx, ty)
             elif p.get('plant'):
-                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'])
+                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
                 tx, ty = lean + 4, top + 6
                 draw_weapon(pen, ch, tx, ty, 90, 1)
                 arm_to(lean + 1, sy, tx, ty)
             else:
-                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'])
+                head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
                 tx, ty = lean + 8, top + 5
                 draw_weapon(pen, ch, tx, ty, 0, 1)
                 arm_to(lean + 1, sy, tx, ty)
@@ -810,7 +859,7 @@ def draw_chibi(pen, ch, view, p, t):
             arm(lean + sh * 0.95, sy, 80, far=True)
         pauldron(lean - po + sdx * 0.3, top + 2, far=view == 'front3q')
         pauldron(lean + po + sdx * 0.3, top + 2, far=view == 'back3q')
-        head_full(pen, ch, hx + sdx, hy, hs, view, p['hurt'], p['glow'])
+        head_full(pen, ch, hx + sdx, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
         if p.get('both') and front:
             draw_weapon(pen, ch, tx, ty, -90, 1)
             fist_at(tx - 1.5, ty); fist_at(tx + 1.5, ty, True)
@@ -837,7 +886,8 @@ def draw_chibi(pen, ch, view, p, t):
     elif p['raise_'] > 0:
         wa_ang, oa_ang = -100 - 15 * p['raise_'], -80 + 15 * p['raise_']
     else:
-        wa_ang, oa_ang = 80 + p['arm'] * 22, 100 - p['arm'] * 22
+        # armOut: la mano del arma algo separada del cuerpo (el orbe de Ahri no tapa el traje)
+        wa_ang, oa_ang = 80 - wpn.get('armOut', 0) + p['arm'] * 22, 100 - p['arm'] * 22
     grip = wpn.get('grip', -30)
 
     if p.get('spinOut') or p.get('plant') or p.get('both'):
@@ -847,6 +897,8 @@ def draw_chibi(pen, ch, view, p, t):
     # ------------------------------------------------ lateral (mirando a la derecha)
     if side:
         draw_tails(pen, ch, 'side', bob, t)
+        if ch.get('fluffy'):
+            fluffy_tails(pen, ch, view, hip, lean, t)
         wings(pen, ch, view, top, lean, t)
         cape_back()
         back_hair(pen, ch, hx, hy, hs, view, hair, bob)
@@ -872,7 +924,7 @@ def draw_chibi(pen, ch, view, p, t):
         if p.get('carry'):
             hxx, hyy = arm(lean, top + 2.5, -100 + p['arm'] * 6, length=4.5)
             draw_weapon(pen, ch, hxx, hyy, 198 + p['arm'] * 4, 1)
-        head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'])
+        head_full(pen, ch, hx + 0.5, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
         if idle_hold == 'across' and swing is None and not p['hurt'] and p['reach'] == 0 and p['raise_'] == 0 and not p.get('carry'):
             a = 40
             hxx, hyy = arm(lean + 1, top + 3, 70, length=5)
@@ -889,6 +941,8 @@ def draw_chibi(pen, ch, view, p, t):
 
     # ------------------------------------------------ frente / espalda
     draw_tails(pen, ch, 'back' if back else 'front', bob, t)
+    if ch.get('fluffy') and not back:
+        fluffy_tails(pen, ch, view, hip, lean, t)
     wings(pen, ch, view, top, lean, t)
     cape_back()
     back_hair(pen, ch, hx + sdx, hy, hs, view, hair, bob)
@@ -919,6 +973,8 @@ def draw_chibi(pen, ch, view, p, t):
         oa = (180 - oa_ang) if front else oa_ang
         arm(lean - wsx * 0.95, top + 2.5, oa)
     cape_over()
+    if back and ch.get('fluffy'):
+        fluffy_tails(pen, ch, view, hip, lean, t)
     if back and p.get('carry'):
         # de espaldas, el arma al hombro cruza la espalda en diagonal
         draw_weapon(pen, ch, lean + sh * 0.55, top + 4, -72 + p['arm'] * 4, 1)
@@ -951,7 +1007,7 @@ def draw_chibi(pen, ch, view, p, t):
         front_weapon()
     pauldron(lean - po + sdx * 0.3, top + 2, far=view == 'front3q')
     pauldron(lean + po + sdx * 0.3, top + 2, far=view == 'back3q')
-    head_full(pen, ch, hx + sdx, hy, hs, view, p['hurt'], p['glow'])
+    head_full(pen, ch, hx + sdx, hy, hs, view, p['hurt'], p['glow'], p.get('blink'))
     if front:
         if across:
             L = ch.get('holdLen', 6.5)
@@ -959,6 +1015,13 @@ def draw_chibi(pen, ch, view, p, t):
             hyy = top + 2.5 + math.sin(math.radians(72)) * L
             ox = lean + sh * 0.95 + math.cos(math.radians(108)) * L
             draw_weapon(pen, ch, hxx + 1, hyy, wpn.get('acrossAng', 0), 1)
+            if p.get('gleam') is not None:
+                # destello que recorre la hoja
+                gx, gy = hxx + 6 + p['gleam'] * 11, hyy - 0.5
+                pen.px(gx, gy, (255, 255, 255, 255))
+                for k in (1, 2):
+                    for dx, dy in ((k, 0), (-k, 0), (0, k), (0, -k)):
+                        pen.px(gx + dx, gy + dy, (255, 255, 240, 230 if k == 1 else 140))
             if A and hasattr(A, 'FIST'):
                 blit(pen, A, A.FIST, hxx, hyy - 2)
                 blit(pen, A, A.FIST, ox + 1, hyy - 2, True)

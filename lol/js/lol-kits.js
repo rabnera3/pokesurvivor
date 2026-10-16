@@ -33,7 +33,42 @@ G.Kit = (() => {
   const UNLOCK = { Q: 1, W: 3, E: 6, R: 10 };
   const MAX = { Q: 5, W: 5, E: 5, R: 3 };
   const MULT = ['dmgK', 'cdK', 'speed', 'radius', 'dur', 'amount', 'arc', 'width', 'spread', 'life', 'size', 'rate', 'stun',
-                'slow', 'drain', 'exec', 'pull', 'knock', 'explode', 'land', 'shieldR', 'every'];
+                'slow', 'drain', 'exec', 'pull', 'knock', 'explode', 'land', 'shieldR', 'every', 'up'];
+
+  // Mecánicas nuevas al llegar al rango 3 y al 5 (subir una habilidad no es sólo
+  // subir números). Cada habilidad puede traer las suyas en `perks`; si no, las
+  // de su forma de atacar. set: valores (los números, el mayor de los dos);
+  // mods: como ranks (count/pierce/repeat se suman, el resto se multiplica).
+  const PERKS = {
+    melee:      { 3: { text: 'Aturde 0,35 s', set: { stun: 0.35 } }, 5: { text: 'Golpe más amplio (+20 % de arco)', mods: { arc: 1.2 } } },
+    projectile: { 3: { text: 'Atraviesa a 1 enemigo más', mods: { pierce: 1 } }, 5: { text: 'Ralentiza un 25 %', set: { slow: 0.25 } } },
+    beam:       { 3: { text: 'Ralentiza un 30 %', set: { slow: 0.3 } }, 5: { text: '+50 % de anchura', mods: { width: 1.5 } } },
+    aura:       { 3: { text: 'Ralentiza un 25 %', set: { slow: 0.25 } }, 5: { text: '+12 % de radio', mods: { radius: 1.12 } } },
+    nova:       { 3: { text: '+4 proyectiles', mods: { count: 4 } }, 5: { text: 'Aturde 0,4 s', set: { stun: 0.4 } } },
+    boomerang:  { 3: { text: 'Ralentiza un 25 %', set: { slow: 0.25 } }, 5: { text: '+20 % de alcance', mods: { radius: 1.2 } } },
+    chain:      { 3: { text: '+1 salto', mods: { count: 1 } }, 5: { text: 'Aturde 0,4 s', set: { stun: 0.4 } } },
+    dash:       { 3: { text: 'Invulnerable 0,35 s al embestir', set: { invuln: 0.35 } }, 5: { text: 'Aturde 0,3 s', set: { stun: 0.3 } } },
+    meteor:     { 3: { text: '+20 % de área', mods: { radius: 1.2 } }, 5: { text: 'Aturde 0,5 s', set: { stun: 0.5 } } },
+    cone:       { 3: { text: 'Ralentiza un 30 %', set: { slow: 0.3 } }, 5: { text: 'Aturde 0,3 s', set: { stun: 0.3 } } },
+    orbit:      { 3: { text: '+1 orbe', mods: { count: 1 } }, 5: { text: 'Dura un 30 % más', mods: { up: 1.3 } } },
+    turret:     { 3: { text: 'Dura un 30 % más', mods: { dur: 1.3 } }, 5: { text: '+1 a la vez', mods: { count: 1 } } },
+    mine:       { 3: { text: '+1 trampa a la vez', mods: { count: 1 } }, 5: { text: 'Ralentiza un 40 %', set: { slow: 0.4 } } },
+    trail:      { 3: { text: 'Ralentiza un 30 %', set: { slow: 0.3 } }, 5: { text: 'El rastro dura un 50 % más', mods: { dur: 1.5 } } },
+    buff:       { 3: { text: 'Dura un 25 % más', mods: { dur: 1.25 } }, 5: { text: 'Un 30 % más fuerte', mods: { amount: 1.3 } } },
+  };
+  function perkOf(m, rank) {
+    const d = G.KITS[m.dex] && G.KITS[m.dex][m.key];
+    if (!d || m.key === 'R') return null;
+    return (d.perks && d.perks[rank]) || (PERKS[m.kind] && PERKS[m.kind][rank]) || null;
+  }
+  function applyPerk(m, pk) {
+    applyMods(m, pk.mods);
+    for (const k in pk.set || {}) {
+      const v = pk.set[k];
+      m[k] = typeof v === 'number' && typeof m[k] === 'number' ? Math.max(m[k], v) : v;
+    }
+    (m.perkList = m.perkList || []).push(pk.text);
+  }
   const ADD = ['count', 'pierce', 'stacks', 'burn', 'poison', 'repeat', 'homing', 'shred', 'isolated', 'vsSlow'];
 
   function applyMods(m, mods) {
@@ -74,6 +109,8 @@ G.Kit = (() => {
     if (m.lvl >= MAX[m.key]) return false;
     m.lvl++;
     if (d.ranks && d.ranks[m.lvl - 1]) applyMods(m, d.ranks[m.lvl - 1]);
+    const pk = perkOf(m, m.lvl);
+    if (pk) applyPerk(m, pk);
     m.cd = cdOf(m);
     return true;
   }
@@ -157,7 +194,7 @@ G.Kit = (() => {
     for (const key of ['Q', 'W', 'E', 'R']) if (pl.level >= UNLOCK[key] && !pl.abil[key]) unlock(pl, key);
   }
 
-  return { UNLOCK, MAX, applyMods, rankCap, make, rankUp, evolve, evoOf, registerAll, init, unlock, onLevel, idOf };
+  return { UNLOCK, MAX, applyMods, rankCap, make, rankUp, evolve, evoOf, registerAll, init, unlock, onLevel, idOf, perkOf };
 })();
 
 // =====================================================================
@@ -186,18 +223,25 @@ G.Kit = (() => {
          desc: 'Un tajo fuerte delante de ti que te da velocidad.',
          base: [26, 34, 42, 50, 60], adR: 1.1, cd: [0.75, 0.71, 0.67, 0.63, 0.6], radius: 70, arc: 1.6, knock: 90,
          self: { stat: 'spd', amount: 0.25, dur: 1.2, stacks: 1 },
+         perks: { 3: { text: 'Silencio de Demacia: el golpe aturde 0,6 s', set: { stun: 0.6 } },
+                  5: { text: 'Golpe imparable: rompe un 25 % de armadura (4 s) y te da +40 % de velocidad',
+                       set: { shred: 0.25, self: { stat: 'spd', amount: 0.4, dur: 1.5, stacks: 1 } } } },
          evo: { item: 'tf', name: 'Golpe Decisivo Demaciano', en: 'Demacian Decisive Strike',
                 text: 'Golpea en 360°, aturde 0,6 s y hace ×1,3 de daño.', mods: { dmgK: 1.3 }, set: { arc: 9, stun: 0.6 } } },
     W: { name: 'Coraje', en: 'Courage', type: 'steel', kind: 'buff', vfx: 'garen-w', dt: 'phys', noDmg: true,
          desc: 'Te proteges: recibes un 30 % menos de daño durante 2,5 s y ganas un escudo (8 % de tu vida máxima). No ataca.',
          base: 0, cd: [12, 11, 10, 9, 8], stat: 'def', amount: 0.3, dur: 2.5, stacks: 1, shieldR: 0.08,
          ranks: [{}, { shieldR: 1.15 }, { dur: 1.2 }, { shieldR: 1.15 }, { dur: 1.2 }],
+         perks: { 3: { text: 'Valor: +30 % de velocidad mientras dura', set: { self: { stat: 'spd', amount: 0.3, dur: 2.5, stacks: 1 } } },
+                  5: { text: 'Determinación: además te cura un 5 % de tu vida máxima', set: { healR: 0.05 } } },
          evo: { item: 'sterak', name: 'Coraje Inquebrantable', en: 'Unbreakable Courage',
                 text: 'Reduce un 45 % el daño, el escudo es el doble y dura 4 s.', mods: { shieldR: 2 }, set: { amount: 0.45, dur: 4 } } },
     E: { name: 'Juicio', en: 'Judgment', type: 'steel', kind: 'aura', vfx: 'garen-e', dt: 'phys',
          desc: 'Giras 3 s con la espada golpeando todo a tu alrededor.',
          base: [5, 7, 9, 11, 13], adR: 0.25, cd: [0.42, 0.4, 0.38, 0.36, 0.34], radius: 74,
          ranks: [{}, {}, { radius: 1.08 }, {}, { radius: 1.08 }],
+         perks: { 3: { text: 'Juicio afilado: los golpes del giro pueden ser críticos', set: { crits: true } },
+                  5: { text: 'Juicio implacable: el giro dura 1 s más', mods: { repeat: 3 } } },
          evo: { item: 'hydra', name: 'Juicio de Demacia', en: 'Judgment of Demacia',
                 text: 'El giro se hace un 50 % más grande, golpea un 50 % más fuerte y rompe armadura.',
                 mods: { radius: 1.5, dmgK: 1.5 }, set: { shred: 0.25 } } },
@@ -215,7 +259,7 @@ G.Kit = (() => {
   K(103, {
     tags: ['ap', 'assassin'], role: 'Maga asesina',
     base: { hp: 100, hpG: 17, ad: 9, adG: 0.6, ar: 21, arG: 4.2, mr: 30, mrG: 1.3, as: 0.67, asG: 0.022, ms: 112, regen: 0.4, regenG: 0.04 },
-    basic: { range: 'ranged', type: 'fairy', vfx: 'confusion', reach: 280 },
+    basic: { range: 'ranged', type: 'fairy', vfx: 'ahri-aa', reach: 280 },
     passive: {
       name: 'Robo de Esencia', en: 'Essence Theft',
       desc: ['Cada 9 enemigos derrotados te curas un 4 % de tu vida máxima.',
@@ -229,23 +273,23 @@ G.Kit = (() => {
         if (t >= 3) pl.addBuff('spd', 0.2, 1.5, 1);
       }
     },
-    Q: { name: 'Orbe del Engaño', en: 'Orb of Deception', type: 'psychic', kind: 'boomerang', vfx: 'psycho-cut', dt: 'magic',
+    Q: { name: 'Orbe del Engaño', en: 'Orb of Deception', type: 'psychic', kind: 'boomerang', vfx: 'ahri-q', dt: 'magic',
          desc: 'Un orbe que va y vuelve, golpeando a la ida y a la vuelta.',
          base: r5(14, 34), apR: 0.4, cd: cds(0.8, 0.68), count: 1, speed: 340, radius: 210, size: 8, spread: 0.5,
          evo: { item: 'luden', name: 'Orbes del Engaño', en: 'Orbs of Deception', text: 'Lanza dos orbes a la vez y cada uno pega un 15 % más.',
                 mods: { count: 1, dmgK: 1.15 } } },
-    W: { name: 'Llamas Zorrunas', en: 'Fox-Fire', type: 'fairy', kind: 'orbit', vfx: 'fire-spin', dt: 'magic',
+    W: { name: 'Llamas Zorrunas', en: 'Fox-Fire', type: 'fairy', kind: 'orbit', vfx: 'ahri-w', dt: 'magic',
          desc: 'Llamas de zorro que giran a tu alrededor.',
          base: r5(9, 21), apR: 0.25, cd: 0.3, count: 3, radius: 64, speed: 2.6, size: 8,
          ranks: [{}, {}, { count: 1 }, {}, { count: 1 }],
          evo: { item: 'liandry', name: 'Llamas Zorrunas Eternas', en: 'Eternal Fox-Fire', text: '+2 llamas, más radio y queman.',
                 mods: { count: 2, radius: 1.2, burn: 1 } } },
-    E: { name: 'Encanto', en: 'Charm', type: 'fairy', kind: 'projectile', vfx: 'fairy-wind', dt: 'magic',
+    E: { name: 'Encanto', en: 'Charm', type: 'fairy', kind: 'projectile', vfx: 'ahri-e', dt: 'magic',
          desc: 'Un beso que persigue al enemigo y lo deja quieto (encantado).',
          base: r5(32, 74), apR: 0.55, cd: cds(0.85, 0.65), speed: 320, size: 8, life: 1.6, homing: 3, count: 1, spread: 0, pierce: 0, stun: 1.0,
          evo: { item: 'void', name: 'Encanto Irresistible', en: 'Irresistible Charm', text: 'Atraviesa a 3 enemigos, encanta 1,5 s y pega ×1,4.',
                 mods: { pierce: 3, stun: 1.5, dmgK: 1.4 } } },
-    R: { name: 'Ímpetu Espiritual', en: 'Spirit Rush', type: 'fairy', kind: 'dash', vfx: 'quick-attack', dt: 'magic',
+    R: { name: 'Ímpetu Espiritual', en: 'Spirit Rush', type: 'fairy', kind: 'dash', vfx: 'ahri-r', dt: 'magic',
          desc: 'Tres embestidas seguidas; no te pueden dar mientras.',
          base: [45, 70, 95], apR: 0.35, cd: [14, 12, 10], radius: 140, width: 40, repeat: 3, every: 0.35, invuln: 0.3 }
   });
@@ -921,7 +965,7 @@ G.Kit = (() => {
   // sin contar la R; media de 2 pasadas de 40 s): acerca a todos a ~115 de daño
   // por segundo contra un jefe y ~550 contra un grupo (media geométrica, así cada
   // uno conserva su estilo: Ashe pega más a uno, Swain a muchos).
-  const KCH = { 64: 1.24, 157: 1.23, 103: 1.29, 86: 1.2, 62: 0.94, 122: 1.0, 50: 0.78, 22: 0.89, 150: 1.16, 54: 1.26, 121: 0.98, 17: 1.5, 58: 1.04, 31: 0.89, 111: 1.42, 19: 1.5, 136: 1.27, 34: 1.25, 82: 1.11, 106: 1.05, 200: 0.88 };
+  const KCH = { 64: 1.16, 157: 1.24, 103: 1.07, 86: 0.75, 62: 0.65, 122: 0.91, 50: 0.77, 22: 0.75, 150: 1.17, 54: 1.24, 121: 1.03, 17: 1.25, 58: 1.1, 31: 0.84, 111: 1.13, 19: 1.17, 136: 1.27, 34: 1.11, 82: 1.05, 106: 1.09, 200: 0.99 };
   const at = (a, i) => Array.isArray(a) ? a[Math.min(i, a.length - 1)] : a;
   for (const dex in T) {
     const k = G.KITS[dex];

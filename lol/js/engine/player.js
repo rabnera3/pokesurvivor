@@ -95,8 +95,10 @@ G.Player = class Player {
   // La de PokéSurvivor (×4 el 2026-10-10) y, además, cada nivel cuesta un 15 %
   // más que el anterior (el nivel 10 cuesta ×2,35): la R llega hacia el minuto 5-7.
   static xpFor(level) {
-    // 2026-10-15: subir costaba poco (en 10 min se llegaba muy alto): ×1,2 y crece más.
-    return Math.floor((8 + level * 6 + Math.pow(level, 1.75) * 1.6) * 4.8 * (1 + 0.25 * (level - 1)));
+    // Los primeros niveles cuestan como en PokéSurvivor; a partir del 5 sube más
+    // deprisa (nivel 10: ×1,7; nivel 15: ×1,7 de lo que costaba al principio).
+    const L = level - 1;
+    return Math.floor((8 + level * 6 + Math.pow(level, 1.75) * 1.6) * 4 * (1 + 0.12 * L + 0.035 * L * L));
   }
 
   cy() { return this.y; }

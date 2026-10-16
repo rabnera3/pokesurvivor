@@ -42,6 +42,8 @@ G.Combat = (() => {
       r.t = r.m.every || 0.3;
       r.m.dmg = G.LoL.abilityDmg(pl, r.m);
       run(pl, r.m);
+      // Mientras dura (el giro de Garen...), su animación sigue en bucle.
+      if (r.m.key && !pl.anim.busy()) { const mt = G.Sprites.meta(pl.dex); if (mt && mt.a[r.m.key]) pl.anim.play(r.m.key); }
       if (--r.left <= 0) pl.reps.splice(i, 1);
     }
   }
@@ -109,7 +111,7 @@ G.Combat = (() => {
     if (ghost) return;
     if (m.self) pl.addBuff(m.self.stat, m.self.amount, m.self.dur, m.self.stacks || 1);
     if (m.shield || m.shieldR) pl.addShield((m.shield || 0) + (m.shieldR || 0) * pl.maxHp + (m.shieldAp || 0) * pl.st.ap);
-    if (m.healSelf) pl.heal(m.healSelf + (m.healR || 0) * pl.maxHp);
+    if (m.healSelf || m.healR) pl.heal((m.healSelf || 0) + (m.healR || 0) * pl.maxHp);
     if (m.invuln) pl.invuln = Math.max(pl.invuln, m.invuln);
     for (const h of pl.hooks('onCast')) h.fn(pl, m, h.t);
   }

@@ -21,7 +21,7 @@ CLEAR = (0, 0, 0, 0)
 
 ANIMS = {
     # nombre: (ancho, alto, fotogramas, duración de cada uno en 1/60 s, ancla y)
-    'Idle':   (48, 48, 4, [24, 10, 24, 10], 44),
+    'Idle':   (48, 48, 6, [20, 8, 8, 14, 6, 14], 44),
     'Walk':   (48, 48, 6, [5, 5, 5, 5, 5, 5], 44),
     'Attack': (72, 72, 8, [3, 3, 2, 2, 2, 3, 3, 4], 54),
     'Shoot':  (64, 56, 6, [3, 3, 3, 4, 4, 4], 50),
@@ -119,7 +119,10 @@ def pose(anim, f, n):
     t = f / max(1, n)
     p = dict(bob=0, leg=0.0, arm=0.0, swing=None, reach=0.0, raise_=0.0, lean=0, fall=0.0, hurt=False, glow=0.0)
     if anim == 'Idle':
-        p['bob'] = [0, 0, 1, 0][f % 4]
+        # respira (sube y baja), parpadea y un brillo recorre el arma
+        p['bob'] = [0, 0, 1, 1, 1, 0][f % 6]
+        p['blink'] = f == 4
+        p['gleam'] = {1: 0.0, 2: 0.5, 3: 1.0}.get(f)
     elif anim == 'Walk':
         ph = math.sin(t * 2 * math.pi)
         p['leg'] = ph * 1.8
@@ -178,11 +181,31 @@ def pose(anim, f, n):
         p['lift'] = [0, 1, 2, 2, 1, 0, 0, 0][f % 8]
         p['smear'] = f in (5, 6)
         p['dust'] = [0, 0, 0, 0, 0, 0, 1, 2][f % 8]
+    elif anim == 'throw':
+        # lanzar algo con la mano (el orbe de Ahri)
+        p['reach'] = [0.2, 0.5, 1.0, 1.0, 0.7, 0.3][f % 6]
+        p['glow'] = [0.3, 0.7, 1, 0.6, 0.2, 0][f % 6]
+        p['lean'] = [0, 0, 2, 2, 1, 0][f % 6]
+    elif anim == 'cast':
+        # concentra magia: brazos arriba, brilla y flota un poco
+        p['raise_'] = [0.4, 0.8, 1, 1, 0.8, 0.5][f % 6]
+        p['glow'] = [0.4, 0.8, 1, 1, 0.7, 0.4][f % 6]
+        p['aura'] = [0, 0.5, 1, 1, 0.5, 0][f % 6]
+        p['lift'] = [0, 1, 2, 2, 1, 0][f % 6]
+    elif anim == 'dash':
+        # embestida: se inclina, se eleva y deja estela
+        p['lean'] = [1, 3, 4, 4, 3, 1][f % 6]
+        p['lift'] = [0, 2, 3, 3, 2, 0][f % 6]
+        p['leg'] = [0.5, 1.5, 1.8, 1.8, 1.0, 0][f % 6]
+        p['speedlines'] = f in (1, 2, 3, 4)
     return p
 
 
 # Plantillas de animación de habilidad: fotogramas y duración (1/60 s).
 ABIL = {
+    'throw': (6, [3, 3, 3, 4, 4, 4]),
+    'cast':  (6, [4, 4, 5, 5, 4, 4]),
+    'dash':  (6, [2, 3, 3, 3, 3, 4]),
     'slam':  (8, [4, 4, 3, 3, 2, 3, 4, 6]),
     'spin':  (8, [2, 2, 2, 2, 2, 2, 2, 2]),
     'guard': (6, [3, 4, 5, 5, 4, 4]),
@@ -310,8 +333,14 @@ def draw_weapon(pen, ch, hx, hy, ang, side_sign=1, smear=False):
     elif kind == 'fist':
         pass
     elif kind == 'orb':
-        pen.ellipse(hx + ux * 3, hy + uy * 3 - 2, 2.5, 2.5, c, light=True)
-        pen.px(hx + ux * 3 - 1, hy + uy * 3 - 3, (255, 255, 255, 255))
+        # orbe brillante: halo, cuerpo, núcleo blanco y chispas
+        ox, oy = hx + ux * 3, hy + uy * 3 - 3
+        pen.ellipse(ox, oy, 3.6, 3.6, shade(c, 0.7)[:3] + (120,), light=False)
+        pen.ellipse(ox, oy, 2.8, 2.8, c, light=False)
+        pen.ellipse(ox - 0.4, oy - 0.4, 1.6, 1.6, shade(c, 1.45), light=False)
+        pen.px(ox - 1, oy - 1, (255, 255, 255, 255))
+        for dx, dy in ((4, -3), (-4, 2), (3, 4), (-3, -4)):
+            pen.px(ox + dx, oy + dy, shade(c, 1.3)[:3] + (200,))
 
 
 def draw_tails(pen, ch, view, bob, t):
@@ -688,17 +717,23 @@ def raw_frame(ch, anim, f, dirname):
                 y = ay - 1 - k - j
                 r = max(1, 3 - k * 0.6 - j)
                 d.ellipse([x - r, y - r, x + r, y + r], fill=(236, 226, 200, max(60, 230 - k * 50 - j * 40)))
+    if p.get('speedlines'):
+        d = ImageDraw.Draw(img)
+        back_dir = -1 if not mirror else 1     # detrás del campeón (en la vista sin espejo mira a la derecha)
+        for k, (yy, ln) in enumerate(((-14, 10), (-9, 14), (-4, 9))):
+            x0 = W // 2 + back_dir * 8
+            d.line([(x0, ay + yy), (x0 + back_dir * ln, ay + yy)], fill=(255, 255, 255, 160 - k * 30), width=1)
     if p.get('lift'):
         moved = Image.new('RGBA', (W, H), CLEAR)
         moved.paste(img, (0, -p['lift']), img)
         img = moved
     # brillo de habilidad (Shoot/Charge)
-    if p['glow'] > 0 and (anim in ('Shoot', 'Charge') or kind == 'ult'):
+    if p['glow'] > 0 and (anim in ('Shoot', 'Charge') or kind in ('ult', 'throw', 'cast')):
         glow = hexc(ch.get('glow', 'ffe9a0'))
         d = ImageDraw.Draw(img)
         # destello de 4 puntas (no un círculo plano)
         r = int(1 + p['glow'] * 3)
-        gx, gy = GLOW_AT.get(('Charge' if kind == 'ult' else anim, view), (0, -30))
+        gx, gy = GLOW_AT.get(('Charge' if kind in ('ult', 'cast') else 'Shoot' if kind == 'throw' else anim, view), (0, -30))
         gy -= p.get('lift', 0)
         gx = W // 2 + gx
         gy = ay + gy
@@ -718,8 +753,14 @@ def raw_frame(ch, anim, f, dirname):
 
 def ring(pen, col, f, back):
     """Estela circular a la altura de la cintura (giro)."""
-    rx, ry, y = 19, 6, -9
+    rx, ry, y = 20, 7, -9
     a0 = f * 45
+    # el anillo entero, tenue (se ve que gira aunque el fotograma esté quieto)
+    for k in range(24):
+        a = math.radians(k * 15)
+        if (math.sin(a) < 0) != back:
+            continue
+        pen.px(rx * math.cos(a), y + ry * math.sin(a), col[:3] + (90,))
     for k in range(10):
         a = math.radians(a0 + k * 22)
         if (math.sin(a) < 0) != back:

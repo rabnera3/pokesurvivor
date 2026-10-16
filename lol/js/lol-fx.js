@@ -14,6 +14,9 @@ G.LoLFX = (() => {
   Object.assign(G.VFX.PAL, {
     demacia: ['#3a2606', '#9a6c14', '#e0b440', '#fde28a', '#ffffff'],
     blade:   ['#1c2232', '#5a6478', '#a8b2c6', '#e2e8f2', '#ffffff'],
+    // Ahri: orbe azul y magia de zorro rosa
+    ahri:    ['#0e2a5c', '#2a64c0', '#5aa8ff', '#bfe6ff', '#ffffff'],
+    charm:   ['#5c0e34', '#b0306a', '#ff6aa8', '#ffc0dc', '#ffffff'],
   });
 
   // ---------------- formas (miran a la derecha)
@@ -66,6 +69,11 @@ G.LoLFX = (() => {
   // ---------------- cómo se ve cada habilidad (ver vfx.js, MOVE)
   G.VFX.LOL = {
     'garen-aa': { pal: 'blade' },
+    'ahri-aa': { proj: 'ball', pal: 'charm' },
+    'ahri-q': { proj: 'ball', pal: 'ahri', trail: 'spark' },
+    'ahri-w': { proj: 'fire', pal: 'charm', trail: 'ember' },
+    'ahri-e': { proj: 'heart', pal: 'charm', trail: 'spark' },
+    'ahri-r': { proj: 'streak', pal: 'charm', trail: 'spark' },
     'garen-q': { melee: 'impact', pal: 'demacia' },
     'garen-w': { aura: 'shield', pal: 'demacia', rise: true },
     'garen-e': { pal: 'blade' },

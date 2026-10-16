@@ -52,6 +52,8 @@ G.LevelUp = (() => {
     if (extra && extra.radius) parts.push('+' + Math.round((extra.radius - 1) * 100) + ' % de área');
     if (extra && extra.shieldR) parts.push('+' + Math.round((extra.shieldR - 1) * 100) + ' % de escudo');
     if (extra && extra.dur) parts.push('+' + Math.round((extra.dur - 1) * 100) + ' % de duración');
+    const pk = G.Kit.perkOf(m, r + 1);
+    if (pk) parts.unshift('★ NUEVO: ' + pk.text);
     return parts.join(' · ') || 'Más fuerte';
   }
   const fmt = v => (Math.round(v * 100) / 100).toString().replace('.', ',');
@@ -102,7 +104,7 @@ G.LevelUp = (() => {
       out.push({
         w: m.key === 'R' ? 16 : 12, type: 'up', key: 'up:' + m.id,
         icon: 'move:' + m.id, color: G.U.TYPE_COLOR[m.type],
-        tag: m.key + ' · rango ' + m.lvl + ' > ' + (m.lvl + 1),
+        tag: m.key + ' · rango ' + m.lvl + ' > ' + (m.lvl + 1) + (G.Kit.perkOf(m, m.lvl + 1) ? ' ★' : ''),
         title: m.name, desc: upText(m) + ratioText(d, skAt(d, m.lvl) * (m.dmgK || 1)) + (d.noDmg ? ' · no hace daño' : ' · daño ' + DT_NAME[m.dt]),
         apply: () => G.Kit.rankUp(m)
       });
@@ -120,17 +122,17 @@ G.LevelUp = (() => {
     }
 
     // --- objetos ---
-    // Como en LoL, no se compra todo de golpe: en las cartas, uno por cada 3
-    // niveles (los de jefes y cofres van aparte).
-    if (pl.items.length < 6 && (pl.cardItems || 0) < Math.floor(pl.level / 3)) {
+    // Como en LoL, no se compra todo de golpe: en las cartas, como mucho uno por
+    // cada 4 niveles (los objetos se consiguen sobre todo en cofres, jefes y grietas).
+    if (pl.items.length < 6 && (pl.cardItems || 0) < Math.floor(pl.level / 4)) {
       const have = new Set(pl.items), boots = pl.items.some(id => G.LoLItems.BY[id].boots);
       const pool = G.LoLItems.poolFor(pl.kitDef).filter(it => !have.has(it.id) && !(boots && it.boots));
       const pick = G.U.pickN(pool.filter(it => !wantItem[it.id]), 3).concat(pool.filter(it => wantItem[it.id]));
       for (const it of pick) {
         const evoFor = wantItem[it.id];
         out.push({
-          // Cuantos más objetos llevas, menos salen (con 0: 7; con 3: ~2,4; con 5: ~1).
-          w: (evoFor ? 13 : 7) * Math.pow(0.7, pl.items.length), type: 'item', key: 'item:' + it.id,
+          // Cuantos más objetos llevas, menos salen (con 0: 4; con 3: ~1,4; con 5: ~0,7).
+          w: (evoFor ? 9 : 4) * Math.pow(0.7, pl.items.length), type: 'item', key: 'item:' + it.id,
           icon: it.icon, color: evoFor ? '#ffd23f' : '#e0b84a', tag: evoFor ? 'Evoluciona ' + evoFor.key : 'Objeto · ' + (pl.items.length + 1) + '/6',
           title: it.name, desc: G.LoLItems.statLine(it) + '. ' + it.desc,
           apply: p => { if (p.addItem(it.id)) p.cardItems = (p.cardItems || 0) + 1; G.Progress.event('item', { id: it.id }); }

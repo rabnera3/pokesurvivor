@@ -123,7 +123,11 @@ G.LoL = (() => {
     if (m.basic) return st.ad * (m.adR || 1) + (m.apR || 0) * st.ap;
     const r = Math.max(0, (m.lvl || 1) - 1);
     const base = Array.isArray(m.base) ? m.base[Math.min(r, m.base.length - 1)] : (m.base || 0);
-    return (base + (m.adR || 0) * st.ad + (m.apR || 0) * st.ap + (m.arR || 0) * st.ar + (m.mrR || 0) * st.mr +
+    // Al principio sólo tienes la Q (luego la W y la E): con menos habilidades,
+    // cada una pega más, para que los primeros minutos no se hagan pesados.
+    const nAb = pl.abil ? ['Q', 'W', 'E'].filter(k => pl.abil[k] && !pl.abil[k].noDmg).length : 3;
+    const early = m.key === 'R' ? 1 : nAb <= 1 ? 1.85 : nAb === 2 ? 1.35 : 1;
+    return early * (base + (m.adR || 0) * st.ad + (m.apR || 0) * st.ap + (m.arR || 0) * st.ar + (m.mrR || 0) * st.mr +
             (m.hpR || 0) * Math.max(0, pl.maxHp - pl.kitDef.base.hp)) * (m.dmgK || 1) *
            (Array.isArray(m.scaleK) ? m.scaleK[Math.min(r, m.scaleK.length - 1)] : (m.scaleK || 1));
   }
