@@ -73,7 +73,6 @@ G.LevelUp = (() => {
   function candidates(pl) {
     const out = [];
     const abil = ['Q', 'W', 'E', 'R'].map(k => pl.abil[k]).filter(Boolean);
-    const act = pl.activeGroup();
 
     // --- evoluciones listas / objetos que las desbloquean ---
     const wantItem = {};
@@ -101,7 +100,7 @@ G.LevelUp = (() => {
       if (m.lvl >= G.Kit.MAX[m.key] || m.lvl >= G.Kit.rankCap(m.key, pl.level)) continue;
       const d = G.KITS[m.dex][m.key];
       out.push({
-        w: (m.key === 'R' ? 14 : 10) + (act.includes(m) ? 4 : 0), type: 'up', key: 'up:' + m.id,
+        w: m.key === 'R' ? 16 : 12, type: 'up', key: 'up:' + m.id,
         icon: 'move:' + m.id, color: G.U.TYPE_COLOR[m.type],
         tag: m.key + ' · rango ' + m.lvl + ' > ' + (m.lvl + 1),
         title: m.name, desc: upText(m) + ratioText(d, skAt(d, m.lvl) * (m.dmgK || 1)) + (d.noDmg ? ' · no hace daño' : ' · daño ' + DT_NAME[m.dt]),
@@ -130,7 +129,8 @@ G.LevelUp = (() => {
       for (const it of pick) {
         const evoFor = wantItem[it.id];
         out.push({
-          w: evoFor ? 13 : 7, type: 'item', key: 'item:' + it.id,
+          // Cuantos más objetos llevas, menos salen (con 0: 7; con 3: ~2,4; con 5: ~1).
+          w: (evoFor ? 13 : 7) * Math.pow(0.7, pl.items.length), type: 'item', key: 'item:' + it.id,
           icon: it.icon, color: evoFor ? '#ffd23f' : '#e0b84a', tag: evoFor ? 'Evoluciona ' + evoFor.key : 'Objeto · ' + (pl.items.length + 1) + '/6',
           title: it.name, desc: G.LoLItems.statLine(it) + '. ' + it.desc,
           apply: p => { if (p.addItem(it.id)) p.cardItems = (p.cardItems || 0) + 1; G.Progress.event('item', { id: it.id }); }
@@ -164,6 +164,13 @@ G.LevelUp = (() => {
     // Si hay una evolución lista, su carta dorada sale siempre.
     const evo = pool.findIndex(c => c.type === 'evo');
     if (evo >= 0) { const c = pool.splice(evo, 1)[0]; used.add(c.key); picked.push(c); }
+    // Como el punto de habilidad de cada nivel en LoL: si alguna habilidad puede
+    // subir de rango, una de las cartas es siempre una de esas (la R, si se puede).
+    const ups = pool.filter(c => c.type === 'up');
+    if (ups.length && picked.length < n) {
+      const c = ups.find(u => u.key.endsWith('R')) || ups[Math.floor(Math.random() * ups.length)];
+      pool.splice(pool.indexOf(c), 1); used.add(c.key); picked.push(c);
+    }
 
     while (picked.length < n && pool.length) {
       const total = pool.reduce((a, c) => a + c.w, 0);
