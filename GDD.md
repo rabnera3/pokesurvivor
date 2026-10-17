@@ -79,8 +79,10 @@ Menú principal  (el mundo de fondo, con Pokémon salvajes paseando)
 - Cada ataque reproduce la **animación de PMD** que toca: `Attack`, `Shoot` o `Charge`.
 - **Apuntado:** lo que te está tocando > el jefe si está a tiro > el enemigo más
   cercano > (sin enemigos) la roca o cofre más cercano.
-- **52 movimientos** en 7 familias (proyectil, cuerpo a cuerpo, rayo, orbes,
-  nova, aura, potenciador), 5 niveles cada uno. Cubren los **18 tipos**.
+- **73 movimientos** en 15 familias (proyectil, cuerpo a cuerpo, rayo, orbes,
+  nova, aura, potenciador, bumerán, cadena, mina, meteoro, torreta, embestida,
+  rastro, abanico), 5 niveles cada uno. Cubren los **18 tipos**. Cada uno tiene
+  su dibujo pixel art generado por código (`js/entities/vfx.js`).
 - El pool de cada Pokémon sale de sus tipos + el pool normal común.
 - Los potenciadores no hacen daño: entras, acumulas y vuelves a uno de ataque.
   Nunca se ofrecen más de 2.

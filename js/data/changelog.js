@@ -6,6 +6,15 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
+  { d: '2026-10-17', title: ['9 movimientos nuevos', '9 new moves'], new: [
+    ['9 movimientos nuevos, cada uno con su propio dibujo pixel art: Poder Pasado (Roca), Puño Dinámico (Lucha), Dragoaliento (Dragón), Voz Cautivadora (Hada), Chispa (Eléctrico), Tajo Aéreo (Volador), Pin Misil (Bicho), Canto Helado (Hielo) y Bomba Germen (Planta). Los tipos que tenían menos ataques ahora tienen uno más.',
+     '9 new moves, each with its own pixel art: Ancient Power (Rock), Dynamic Punch (Fighting), Dragon Breath (Dragon), Disarming Voice (Fairy), Spark (Electric), Air Slash (Flying), Pin Missile (Bug), Ice Shard (Ice) and Seed Bomb (Grass). The types that had the fewest attacks now have one more.'],
+    ['Todos evolucionan al nivel máximo: Romperrocas, Megapuño, Enfado, Carantoña, Voltio Cruel, Aire Afilado, Megacuerno, Chuzos y Drenadoras.',
+     'All of them evolve at max level: Rock Wrecker, Mega Punch, Outrage, Play Rough, Wild Charge, Air Cutter, Megahorn, Icicle Crash and Leech Seed.']
+  ], chg: [
+    ['El logro Maestro de movimientos pide ahora evolucionar los 68 movimientos (antes 59).',
+     'The Move master achievement now asks you to evolve all 68 moves (59 before).']
+  ] },
   { d: '2026-10-14', title: ['Recupera tu cuenta con Gmail', 'Recover your account with Gmail'], new: [
     ['Si juegas con nombre y contraseña, puedes vincular tu Gmail: si un día olvidas la contraseña, entras con Google y es tu misma cuenta. Te lo ofrecemos al entrar.',
      'If you play with a name and password, you can link your Gmail: if you ever forget your password, sign in with Google and it is the same account. We offer it when you sign in.'],

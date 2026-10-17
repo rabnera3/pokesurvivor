@@ -248,6 +248,93 @@ G.VFX = (() => {
       P.set(5, 5, 'w');
       P.outline();
     } },
+    // ---- 2026-10-17: formas de los movimientos nuevos ----
+    rune: { w: 11, h: 13, spin: true, gen(P) {                    // losa con runa (Poder Pasado)
+      P.fill((x, y) => {
+        if (x < 1 || x > 9 || y < 1 || y > 11) return null;
+        if ((x === 1 || x === 9) && (y === 1 || y === 11)) return null;
+        return x >= 8 || y >= 10 ? 'd' : x < 4 || y < 3 ? 'l' : 'm';
+      });
+      for (const [x, y] of [[5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [5, 8], [4, 4], [6, 4], [3, 6], [7, 6], [4, 8], [6, 8]]) P.set(x, y, 'w');
+      P.outline();
+    } },
+    fist: { w: 14, h: 11, dir: true, gen(P) {                     // puño con estela (Puño Dinámico)
+      P.fill((x, y) => {
+        if (x < 5 || x > 12 || y < 1 || y > 9) return null;
+        if ((x === 5 || x === 12) && (y === 1 || y === 9)) return null;
+        return y < 4 ? 'l' : 'm';
+      });
+      for (const y of [3, 5, 7]) for (let x = 9; x <= 12; x++) P.set(x, y, 'd');      // dedos
+      for (const y of [2, 4, 6]) P.set(11, y, 'w');                                    // nudillos
+      for (let x = 5; x <= 8; x++) P.set(x, 7, 'd');                                   // pulgar
+      P.set(6, 2, 'w');
+      P.outline();
+      for (const [y, a, b] of [[3, 0, 2], [6, 1, 3], [8, 0, 2]]) for (let x = a; x <= b; x++) P.set(x, y, 'l');
+    } },
+    breath: { w: 15, h: 11, frames: 2, dir: true, gen(P, f) {     // bocanada con remolino (Dragoaliento)
+      P.fill((x, y) => {
+        const d = Math.hypot((x - 9) / 4.8, (y - 5) / 4.2) + H(x, y, f + 11) * 0.2;
+        return d < 0.45 ? 'w' : d < 0.75 ? 'l' : d < 1 ? 'm' : null;
+      });
+      P.arc(9, 5, 3.1, f * 1.6, f * 1.6 + 3.6, 'd');               // remolino oscuro que gira
+      for (let x = 1; x <= 4; x++) {                               // lenguas de aliento detrás
+        const y1 = 5 + Math.round(Math.sin(x * 1.3 + f * 2) * 1.5);
+        P.set(x, y1, x < 3 ? 'm' : 'l'); P.set(x + 0.5, y1 + (x % 2 ? 1 : -1), 'm');
+      }
+      P.outline();
+    } },
+    sparkle: { w: 13, h: 13, frames: 2, spin: true, gen(P, f) {   // destello de 4 puntas (Voz Cautivadora)
+      const L = f ? 6 : 5;
+      P.fill((x, y) => {
+        const s = Math.sqrt(Math.abs(x - 6) / L) + Math.sqrt(Math.abs(y - 6) / L);
+        return s <= 0.75 ? 'w' : s <= 1 ? 'l' : null;
+      });
+      if (f) for (const [x, y] of [[2, 2], [10, 2], [2, 10], [10, 10]]) P.set(x, y, 'm');
+      P.outline();
+    } },
+    zap: { w: 15, h: 15, frames: 2, gen(P, f) {                   // bola eléctrica con rayos (Chispa)
+      for (let k = 0; k < 4; k++) {                                // rayos en zigzag que asoman
+        const a = k * Math.PI / 2 + (f ? Math.PI / 4 : 0.3);
+        const p = (r, s) => [7 + Math.cos(a + s) * r, 7 + Math.sin(a + s) * r];
+        const [x0, y0] = p(3.5, 0), [x1, y1] = p(5, 0.45), [x2, y2] = p(6.6, -0.1);
+        P.line(x0, y0, x1, y1, 'l'); P.line(x1, y1, x2, y2, 'w');
+      }
+      P.fill((x, y) => { const d = Math.hypot(x - 7, y - 7); return d < 1.6 ? 'w' : d < 3 ? 'l' : d < 4 ? 'm' : null; });
+      P.set(6, 5, 'w');
+      P.outline();
+    } },
+    blade: { w: 9, h: 15, dir: true, gen(P) {                     // cuchilla de aire fina (Tajo Aéreo)
+      P.arc(-2, 7, 8.5, -0.95, 0.95, 'w');
+      P.arc(-2, 7, 8.0, -0.9, 0.9, 'l');
+      P.arc(-2, 7, 7.4, -0.8, 0.8, 'l');
+      P.arc(-2, 7, 6.7, -0.55, 0.55, 'm');
+      P.outline();
+    } },
+    pin: { w: 13, h: 7, dir: true, gen(P) {                       // aguijón con aletas (Pin Misil)
+      for (let x = 2; x <= 9; x++) { P.set(x, 3, 'm'); P.set(x, 2, x > 3 ? 'l' : 'm'); }
+      P.set(10, 3, 'l'); P.set(10, 2, 'w'); P.set(11, 3, 'w');
+      P.set(2, 1, 'd'); P.set(3, 1, 'd'); P.set(2, 4, 'd'); P.set(3, 4, 'd');
+      P.set(1, 0, 'd'); P.set(1, 5, 'd');
+      P.outline();
+    } },
+    icicle: { w: 15, h: 7, dir: true, gen(P) {                    // carámbano largo (Canto Helado)
+      for (let x = 1; x <= 13; x++) {
+        const th = (13 - x) / 12 * 2.6;
+        for (let y = 0; y < P.h; y++) { const d = Math.abs(y - 3); if (d <= th) P.set(x, y, y < 3 || d <= th * 0.4 ? 'l' : 'm'); }
+      }
+      for (let x = 2; x <= 9; x += 3) P.set(x, 2, 'w');
+      P.set(13, 3, 'w');
+      P.outline();
+    } },
+    seed: { w: 11, h: 11, frames: 2, gen(P, f) {                  // semilla con brote (Bomba Germen)
+      P.fill((x, y) => { const d = Math.hypot((x - 5) / 3.6, (y - 7) / 3); return d <= 1 ? (x + y < 11 ? 'l' : 'm') : null; });
+      for (let y = 6; y <= 9; y++) P.set(5, y, 'd');
+      P.set(3, 6, 'w');
+      const s = f ? 1 : 0;
+      P.set(5, 3, 'm'); P.set(5, 2, 'm');
+      P.set(4 - s, 1, 'l'); P.set(3 - s, 1, 'l'); P.set(6 + s, 1, 'l'); P.set(7 + s, 0, 'l');
+      P.outline();
+    } },
     heart: { w: 9, h: 8, gen(P) {
       ['.ll...ll.', 'lwll.llll', 'lllllllll', 'lllllllll', '.lllllll.', '..lllll..', '...lll...', '....l....']
         .forEach((row, y) => [...row].forEach((c, x) => { if (c !== '.') P.set(x, y, c === 'w' ? 'w' : 'l'); }));
@@ -379,7 +466,16 @@ G.VFX = (() => {
     'aerial-ace':    { proj: 'wind' },
     'flame-wheel':   { proj: 'fire', aura: 'fire' },
     'bubble-beam':   { proj: 'bubble' },
-    'hex':           { beam: 'shadow', proj: 'shadow' }
+    'hex':           { beam: 'shadow', proj: 'shadow' },
+    'ancient-power': { proj: 'rune', trail: 'dirt' },
+    'dynamic-punch': { proj: 'fist', trail: 'spark' },
+    'dragon-breath': { proj: 'breath', trail: 'ember' },
+    'disarming-voice': { proj: 'sparkle', trail: 'spark' },
+    'spark':         { proj: 'zap', melee: 'impact' },
+    'air-slash':     { proj: 'blade' },
+    'pin-missile':   { proj: 'pin' },
+    'ice-shard':     { proj: 'icicle', trail: 'spark' },
+    'seed-bomb':     { proj: 'seed' }
   };
 
   const TYPE_SHAPE = {

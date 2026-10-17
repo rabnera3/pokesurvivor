@@ -398,7 +398,45 @@
 
     { id: 'hex', name: 'Infortunio', type: 'ghost', kind: 'chain',
       desc: 'Maldición que salta entre enemigos. Mucho más daño si están quemados, envenenados o frenados.',
-      cd: 0.9, dmg: 17, count: 4, radius: 150, hex: 1.7 }
+      cd: 0.9, dmg: 17, count: 4, radius: 150, hex: 1.7 },
+
+    // ---------------- NUEVOS (2026-10-17): uno más para los tipos que tenían menos ----------------
+    // Cada uno con su propio dibujo pixel art (vfx.js).
+    { id: 'ancient-power', name: 'Poder Pasado', type: 'rock', kind: 'orbit',
+      desc: 'Piedras con runas antiguas giran a tu alrededor y empujan.',
+      cd: 0.30, dmg: 15, count: 3, radius: 66, speed: 2.2, size: 9, knock: 50 },
+
+    { id: 'dynamic-punch', name: 'Puño Dinámico', type: 'fighting', kind: 'projectile',
+      desc: 'Puñetazo lento pero demoledor que atraviesa y empuja mucho.',
+      cd: 0.85, dmg: 28, speed: 240, count: 1, spread: 0.1, pierce: 1, life: 1.3, size: 9, knock: 120 },
+
+    { id: 'dragon-breath', name: 'Dragoaliento', type: 'dragon', kind: 'cone',
+      desc: 'Aliento de dragón en abanico corto que frena.',
+      cd: 0.70, dmg: 7, count: 6, arc: 0.85, speed: 360, life: 0.45, size: 7, pierce: 1, slow: 0.25 },
+
+    { id: 'disarming-voice', name: 'Voz Cautivadora', type: 'fairy', kind: 'nova',
+      desc: 'Destellos en todas direcciones que buscan a los enemigos.',
+      cd: 1.10, dmg: 10, speed: 240, count: 8, pierce: 0, life: 1.4, size: 7, homing: 1.5 },
+
+    { id: 'spark', name: 'Chispa', type: 'electric', kind: 'dash',
+      desc: 'Te lanzas electrificado: golpeas y frenas todo lo que cruzas.',
+      cd: 0.80, dmg: 19, radius: 110, width: 36, knock: 30, slow: 0.3 },
+
+    { id: 'air-slash', name: 'Tajo Aéreo', type: 'flying', kind: 'projectile',
+      desc: 'Cuchilla de aire rápida que atraviesa a varios.',
+      cd: 0.55, dmg: 15, speed: 380, count: 1, spread: 0.15, pierce: 2, life: 1.0, size: 7 },
+
+    { id: 'pin-missile', name: 'Pin Misil', type: 'bug', kind: 'cone',
+      desc: 'Ráfaga de aguijones en abanico estrecho.',
+      cd: 0.75, dmg: 8, count: 5, arc: 0.6, speed: 460, life: 0.5, size: 5, pierce: 0 },
+
+    { id: 'ice-shard', name: 'Canto Helado', type: 'ice', kind: 'projectile',
+      desc: 'Carámbano rapidísimo que frena al enemigo.',
+      cd: 0.38, dmg: 11, speed: 520, count: 1, spread: 0.08, pierce: 0, life: 0.9, size: 6, slow: 0.3 },
+
+    { id: 'seed-bomb', name: 'Bomba Germen', type: 'grass', kind: 'mine',
+      desc: 'Planta semillas que estallan cuando las pisan.',
+      cd: 1.15, dmg: 20, count: 2, radius: 58, dur: 8 }
   ];
 
   // Cuerpo a cuerpo (12-10-2026): +20 % de daño y +25 % de alcance y de arco
@@ -517,7 +555,12 @@
     'hail': ['Alud', 'cd'],                  'meteor-mash': ['Bomba Imán', 'atk'],
     'will-o-wisp': ['Infierno', 'cd'],       'substitute': ['Doble Equipo', 'def'],
     'aerial-ace': ['Acróbata', 'spd'],       'flame-wheel': ['Envite Ígneo', 'spd'],
-    'bubble-beam': ['Acua Cola', 'atk'],     'hex': ['Poltergeist', 'mag']
+    'bubble-beam': ['Acua Cola', 'atk'],     'hex': ['Poltergeist', 'mag'],
+    'ancient-power': ['Romperrocas', 'def'], 'dynamic-punch': ['Megapuño', 'atk'],
+    'dragon-breath': ['Enfado', 'spd'],      'disarming-voice': ['Carantoña', 'xp'],
+    'spark': ['Voltio Cruel', 'spd'],        'air-slash': ['Aire Afilado', 'cd'],
+    'pin-missile': ['Megacuerno', 'atk'],    'ice-shard': ['Chuzos', 'hp'],
+    'seed-bomb': ['Drenadoras', 'rgn']
   };
   // Lo que gana al evolucionar, según cómo funcione.
   const EVO_MODS = {
