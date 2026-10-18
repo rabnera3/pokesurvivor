@@ -99,6 +99,8 @@
     /** @param eff  'super' | 'weak' | null (tabla de tipos, sólo para enseñarlo) */
     hurt(amount, color = '#fff', dirX = 0, dirY = 0, knock = 0, eff = null) {
       if (this.dead) return;
+      // Dentro de un Espacio Raro recibe más daño de todo.
+      if (this.vulnT > 0) amount *= this.vulnK || 1;
       const d = Math.max(1, Math.round(amount));
       // Copia de un enemigo del anfitrión: el golpe se le manda a él, que es
       // quien decide si cae. Aquí sólo se ve (número, destello y animación).
@@ -252,6 +254,7 @@
 
       // --- estados ---
       if (this.slowT > 0) { this.slowT -= dt; if (this.slowT <= 0) this.slow = 0; }
+      if (this.vulnT > 0) this.vulnT -= dt;
       if (this.burn > 0) {
         this.burnT -= dt; this.burnTick -= dt;
         if (this.burnTick <= 0) { this.burnTick = 0.5; this.hurt(1.6 * this.burn * (1 + pl.level * 0.06), '#ff9a4d'); }

@@ -26,6 +26,12 @@ G.Combat = (() => {
 
   function tickMove(dt, pl, m, now) {
     if (m.kind === 'orbit') { orbit(pl, m, dt, now); return; }
+    // Contraataque: no se lanza solo, espera a que te golpeen (onHurt). Listo: late.
+    if (m.kind === 'counter') {
+      if (m.t > 0) m.t -= dt;
+      else if (Math.random() < dt * 2.5) G.FX.ring(pl.x, pl.y, pl.r * 1.6, pl.r * 2.4, G.U.TYPE_COLOR[m.type], 0.3, 2);
+      return;
+    }
 
     m.t -= dt;
     if (m.t > 0) return;
@@ -60,10 +66,16 @@ G.Combat = (() => {
       case 'dash':       dash(pl, m); break;
       case 'trail':      trailPatch(pl, m); break;
       case 'cone':       cone(pl, m); break;
+      case 'vortex':     vortex(pl, m); break;
+      case 'curse':      curse(pl, m); break;
+      case 'counter':    counterBurst(pl, m); break;
+      case 'rollout':    rollout(pl, m); break;
+      case 'cluster':    cluster(pl, m); break;
+      case 'zone':       zone(pl, m); break;
     }
   }
 
-  const TARGETED = ['melee', 'beam', 'projectile', 'boomerang', 'chain', 'meteor', 'dash', 'cone'];
+  const TARGETED = ['melee', 'beam', 'projectile', 'boomerang', 'chain', 'meteor', 'dash', 'cone', 'vortex', 'curse', 'cluster'];
   function needsTarget(m) { return TARGETED.includes(m.kind); }
   function reach(m) {
     if (m.kind === 'melee') return m.radius + 30;
@@ -73,6 +85,8 @@ G.Combat = (() => {
     if (m.kind === 'meteor') return 340;
     if (m.kind === 'dash') return m.radius + 60;
     if (m.kind === 'cone') return m.speed * m.life + 30;
+    if (m.kind === 'vortex' || m.kind === 'cluster') return 320;
+    if (m.kind === 'curse') return 300;
     return 520;
   }
 
@@ -350,6 +364,98 @@ G.Combat = (() => {
     G.FX.spark(pl.x + Math.cos(pl.aim) * pl.r, pl.y - G.LIFT + Math.sin(pl.aim) * pl.r, col, Math.cos(pl.aim), Math.sin(pl.aim), 5);
   }
 
+  // ---------------- familias nuevas (2026-10-18) ----------------
+
+  const byDist = (pl, list) => list.sort((a, b) => G.U.dist2(a.x, a.y, pl.x, pl.y) - G.U.dist2(b.x, b.y, pl.x, pl.y));
+
+  /** Torbellino: remolino sobre el enemigo que arrastra hacia el centro a todo lo de alrededor. */
+  function vortex(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    const near = byDist(pl, G.EnemyMgr.queryCircle(pl.x, pl.y, reach(m)).filter(e => !e.dead));
+    const n = Math.max(1, m.count | 0);
+    for (let i = 0; i < n; i++) {
+      const e = near[Math.min(near.length - 1, i * 4)];         // el 2º, algo más allá
+      const x = e ? e.x : pl.x + Math.cos(pl.aim) * 120, y = e ? e.y : pl.y + Math.sin(pl.aim) * 120;
+      fields.push({ kind: 'vortex', owner: pl, ghost, m, col, vis, x, y, t: 0, life: m.dur || 3, r: m.radius, tick: 0, dmg: m.dmg * pl.atk });
+    }
+    G.FX.ring(pl.x, pl.y, 4, 26, col, 0.25, 2);
+  }
+
+  /** Maldición: marca a varios enemigos; la marca estalla al rato (aunque hayan caído). */
+  function curse(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    const marked = new Set(fields.filter(f => f.kind === 'curse' && f.owner === pl).map(f => f.e));
+    const near = byDist(pl, G.EnemyMgr.queryCircle(pl.x, pl.y, reach(m)).filter(e => !e.dead && !marked.has(e)));
+    for (const e of near.slice(0, Math.max(1, m.count | 0))) {
+      fields.push({ kind: 'curse', owner: pl, ghost, m, col, vis, e, x: e.x, y: e.y, h: e.bodyH || 20, t: 0,
+                    fuse: m.fuse || 1.8, r: m.radius, dmg: m.dmg * pl.atk });
+    }
+  }
+
+  /** Contraataque: onda de choque a tu alrededor (la lanza onHurt al recibir un golpe). */
+  function counterBurst(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    G.FX.ring(pl.x, pl.y, pl.r, m.radius, col, 0.35, 5);
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * 6.2832;
+      G.FX.sp(vis.proj, vis.pal, pl.x + Math.cos(a) * m.radius * 0.45, pl.y + Math.sin(a) * m.radius * 0.35 - G.LIFT * 0.5,
+              { vx: Math.cos(a) * 110, vy: Math.sin(a) * 85, life: 0.32, scale: 1.5 });
+    }
+    if (ghost) return;
+    G.Camera.kick(0.2);
+    for (const e of G.EnemyMgr.queryCircle(pl.x, pl.y, m.radius)) hit(pl, e, m.dmg * pl.atk, col, e.x - pl.x, e.y - pl.y, m.knock || 0, m);
+    for (const p of G.World.propsInCircle(pl.x, pl.y, m.radius)) G.World.damageProp(p, m.dmg * pl.atk, col);
+  }
+
+  /** Te han golpeado: los Contraataques del hueco activo que estén listos responden. */
+  function onHurt(pl) {
+    if (pl.dead) return;
+    for (const m of pl.activeGroup()) {
+      if (m.kind !== 'counter' || m.t > 0) continue;
+      m.t = Math.max(0.05, m.cd * pl.cdMul);
+      pl.cast(m);
+      if (G.Coop.active) G.Coop.cast(pl, m);
+      m.castAt = performance.now();
+      run(pl, m);
+    }
+  }
+
+  /** Desenrollar: te haces una bola y ruedas más deprisa; lo que arrollas recibe cada vez más daño. */
+  function rollout(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    for (const f of fields) if (f.kind === 'roll' && f.owner === pl) f.gone = true;
+    fields.push({ kind: 'roll', owner: pl, ghost, m, col, vis, x: pl.x, y: pl.y, t: 0, life: m.dur || 3, r: m.radius,
+                  tick: 0, ramp: 1, dmg: m.dmg * pl.atk });
+    if (!ghost) pl.rolling = m.roll || 1.4;
+    G.FX.ring(pl.x, pl.y, 4, 30, col, 0.3, 3);
+  }
+
+  /** Bomba Huevo: huevo en parábola; al caer estalla y suelta metralla en todas direcciones. */
+  function cluster(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    const n = Math.max(1, m.eggs | 0);
+    const tg = pl.target && !pl.target.dead ? pl.target : null;
+    const d = tg ? Math.min(reach(m) - 20, G.U.dist(pl.x, pl.y, tg.x, tg.y)) : 160;
+    for (let i = 0; i < n; i++) {
+      const a = pl.aim + (i - (n - 1) / 2) * 0.55;
+      fields.push({ kind: 'lob', owner: pl, ghost, m, col, vis, sx: pl.x, sy: pl.y,
+                    x: pl.x + Math.cos(a) * d, y: pl.y + Math.sin(a) * d, t: -i * 0.12, fly: 0.55, r: m.radius, dmg: m.dmg * pl.atk });
+    }
+  }
+
+  /** Espacio Raro: sala en el suelo; dentro, los enemigos van a cámara lenta y reciben más daño. */
+  function zone(pl, m) {
+    const col = G.U.TYPE_COLOR[m.type], vis = G.VFX.forMove(m);
+    for (const f of fields) if (f.kind === 'zone' && f.owner === pl) f.gone = true;
+    fields.push({ kind: 'zone', owner: pl, ghost, m, col, vis, x: pl.x, y: pl.y, t: 0, life: m.dur || 5, r: m.radius,
+                  tick: 0, n: 0, dmg: m.dmg * pl.atk });
+    G.FX.ring(pl.x, pl.y, 6, m.radius, col, 0.4, 3);
+  }
+  // La sala es un rectángulo (el suelo se ve en perspectiva: 0,7 de alto).
+  const zoneH = f => f.r * 0.7;
+  const inZone = f => G.EnemyMgr.queryCircle(f.x, f.y, f.r * 1.3)
+    .filter(e => Math.abs(e.x - f.x) <= f.r && Math.abs(e.y - f.y) <= zoneH(f));
+
   /** Daño de un campo (mina, meteoro, charco) a todo lo que hay en su círculo. */
   function blast(f, r, k = 1) {
     if (f.ghost) return;
@@ -362,7 +468,10 @@ G.Combat = (() => {
     for (let i = fields.length - 1; i >= 0; i--) {
       const f = fields[i];
       f.t += dt;
-      if (f.gone || !f.owner || (f.life && f.t >= f.life && f.kind !== 'mine')) { fields.splice(i, 1); continue; }
+      if (f.gone || !f.owner || (f.life && f.t >= f.life && f.kind !== 'mine')) {
+        if (f.kind === 'roll' && f.owner && !f.ghost) f.owner.rolling = 0;
+        fields.splice(i, 1); continue;
+      }
       if (f.kind === 'mine') {
         const armed = f.t >= f.arm;
         const trig = armed && G.EnemyMgr.queryCircle(f.x, f.y, 14).length > 0;
@@ -398,6 +507,75 @@ G.Combat = (() => {
           }
         }
         if (f.kick > 0) f.kick -= dt;
+      } else if (f.kind === 'vortex') {
+        // Arrastra hacia el centro (los jefes no se dejan) y daña cada 0,4 s.
+        if (!f.ghost) {
+          const k = (f.m.pull || 100) * dt * 6;
+          for (const e of G.EnemyMgr.queryCircle(f.x, f.y, f.r * 1.7)) {
+            if (e.boss || e.dead) continue;
+            const [nx, ny] = G.U.norm(f.x - e.x, f.y - e.y);
+            e.kx += nx * k; e.ky += ny * k;
+          }
+        }
+        f.tick -= dt;
+        if (f.tick <= 0) { f.tick = 0.4; blast(f, f.r); }
+        if (Math.random() < dt * 8 && G.Camera.sees(f.x, f.y, 20)) {
+          const a = Math.random() * 6.2832;
+          G.FX.trail('drip', f.vis.pal, f.x + Math.cos(a) * f.r, f.y + Math.sin(a) * f.r * 0.6, Math.sin(a), -Math.cos(a));
+        }
+      } else if (f.kind === 'curse') {
+        if (f.e && !f.e.dead) { f.x = f.e.x; f.y = f.e.y; f.h = f.e.bodyH || f.h; }
+        if (f.t >= f.fuse) {
+          G.FX.ring(f.x, f.y, 4, f.r, f.col, 0.35, 4);
+          G.FX.burst(f.x, f.y - f.h * 0.5, f.col, 14, 160);
+          if (G.Camera.sees(f.x, f.y, 40)) G.Audio.sfx('break');
+          if (!f.ghost && f.e && !f.e.dead) hit(f.owner, f.e, f.dmg, f.col, 0, -1, 0, f.m);
+          blast(f, f.r, 0.5);                                  // salpica a los de al lado
+          fields.splice(i, 1);
+        }
+      } else if (f.kind === 'roll') {
+        f.x = f.owner.x; f.y = f.owner.y;
+        f.tick -= dt;
+        if (f.tick <= 0) {
+          f.tick = 0.25;
+          const r = f.r * (0.8 + f.ramp * 0.2);
+          const any = !f.ghost && G.EnemyMgr.queryCircle(f.x, f.y, r).length > 0;
+          blast(f, r, f.ramp);
+          if (any) f.ramp = Math.min(3, f.ramp + 0.25);         // cada arrollón, más fuerte (hasta ×3)
+        }
+        if (Math.random() < dt * 20 && G.Camera.sees(f.x, f.y, 20)) {
+          G.FX.trail('dirt', f.vis.pal, f.x, f.y, Math.cos(f.owner.aim || 0), Math.sin(f.owner.aim || 0));
+        }
+      } else if (f.kind === 'lob') {
+        if (f.t >= f.fly) {
+          G.FX.ring(f.x, f.y, 4, f.r, f.col, 0.3, 4);
+          G.FX.burst(f.x, f.y - 6, f.col, 10, 150);
+          if (G.Camera.sees(f.x, f.y, 40)) G.Audio.sfx('break');
+          blast(f, f.r);
+          const m = f.m, k = Math.max(3, m.count | 0);
+          for (let j = 0; j < k; j++) {                        // metralla
+            const a = j / k * 6.2832 + G.U.rand(-0.15, 0.15);
+            G.Projectiles.spawn(Object.assign({
+              x: f.x, y: f.y, vx: Math.cos(a) * (m.speed || 280), vy: Math.sin(a) * (m.speed || 280),
+              dmg: f.dmg * 0.4, r: m.size || 5, life: 0.5, pierce: 0, color: f.col,
+              hits: new Set(), vis: { proj: 'shell', pal: f.vis.pal }, ghost: f.ghost, owner: f.owner
+            }, payload(m)));
+          }
+          fields.splice(i, 1);
+        }
+      } else if (f.kind === 'zone') {
+        f.tick -= dt;
+        if (f.tick <= 0) {
+          f.tick = 0.3; f.n++;
+          if (!f.ghost) {
+            const amp = 1 + (f.m.amp || 0.3);
+            for (const e of inZone(f)) {
+              e.applySlow(f.m.slow || 0.5, 0.45);
+              e.vulnT = 0.45; e.vulnK = amp;
+              if (f.n % 3 === 0 && f.dmg > 0) hit(f.owner, e, f.dmg, f.col, 0, 0, 0, f.m);
+            }
+          }
+        }
       } else if (f.kind === 'patch') {
         f.tick -= dt;
         if (f.tick <= 0) { f.tick = 0.5; blast(f, f.r); }
@@ -441,6 +619,39 @@ G.Combat = (() => {
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = '#000';
         ctx.beginPath(); ctx.ellipse(f.x, f.y, 11, 4.5, 0, 0, 6.2832); ctx.fill();
+      } else if (f.kind === 'vortex') {
+        // Espiral pixel art que gira, aplastada como el suelo.
+        const a = Math.min(1, (f.life - f.t) * 3, f.t * 6);
+        ctx.globalAlpha = 0.22 * a;
+        ctx.fillStyle = f.col;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.6, 0, 0, 6.2832); ctx.fill();
+        ctx.translate(Math.round(f.x), Math.round(f.y));
+        ctx.scale(1, 0.6);
+        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, 0, 0, { scale: f.r / 22, angle: -now * 7, frame: Math.floor(now * 10), alpha: 0.9 * a });
+      } else if (f.kind === 'lob') {
+        const k = G.U.clamp(f.t / f.fly, 0, 1);
+        ctx.globalAlpha = 0.25 + k * 0.2;
+        ctx.fillStyle = '#000';
+        const gx = f.sx + (f.x - f.sx) * k, gy = f.sy + (f.y - f.sy) * k;
+        ctx.beginPath(); ctx.ellipse(gx, gy, 7, 3, 0, 0, 6.2832); ctx.fill();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = f.col; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.6, 0, 0, 6.2832); ctx.stroke();
+      } else if (f.kind === 'zone') {
+        // Sala de baldosas: borde que parpadea y tablero tenue dentro.
+        const P = G.VFX.PAL[f.vis.pal] || G.VFX.PAL.normal;
+        const a = Math.min(1, (f.life - f.t) * 2, f.t * 5);
+        const T = 8, w = Math.round(f.r / T) * T, h = Math.round(zoneH(f) / T) * T;
+        const x0 = Math.round(f.x - w), y0 = Math.round(f.y - h);
+        ctx.globalAlpha = 0.16 * a;
+        ctx.fillStyle = P[2];
+        for (let yy = 0; yy < h * 2; yy += T) for (let xx = 0; xx < w * 2; xx += T) if (!(((xx + yy) / T) % 2)) ctx.fillRect(x0 + xx, y0 + yy, T, T);
+        ctx.globalAlpha = 0.85 * a;
+        const ph = Math.floor(now * 6);
+        let k = 0;
+        const tile = (x, y) => { ctx.fillStyle = P[(k++ + ph) % 2 ? 3 : 1]; ctx.fillRect(x + 1, y + 1, T - 2, T - 2); };
+        for (let xx = 0; xx < w * 2; xx += T) { tile(x0 + xx, y0); tile(x0 + xx, y0 + h * 2 - T); }
+        for (let yy = T; yy < h * 2 - T; yy += T) { tile(x0, y0 + yy); tile(x0 + w * 2 - T, y0 + yy); }
       }
       ctx.restore();
     }
@@ -459,6 +670,24 @@ G.Combat = (() => {
         const fade = Math.min(1, (f.life - f.t) * 2, f.t * 5);
         const bob = Math.sin(now * 4 + f.x) * 2 - (f.kick > 0 ? 2 : 0);
         G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x, f.y - 16 + bob, { scale: 1.5, alpha: fade, frame: Math.floor(now * 8) });
+      } else if (f.kind === 'curse') {
+        // Calavera sobre el enemigo; los últimos instantes parpadea deprisa.
+        const left = f.fuse - f.t;
+        if (left > 0.6 || Math.sin(now * 40) > 0) {
+          G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x, f.y - f.h - 14 + Math.sin(now * 5 + f.x) * 1.5,
+                     { scale: 1.5, frame: Math.floor(now * 6) });
+        }
+      } else if (f.kind === 'roll') {
+        // Hecho una bola: cuanto más arrolla, más grande.
+        const fade = Math.min(1, (f.life - f.t) * 4, f.t * 8);
+        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x, f.y - 11, { scale: 1.6 + (f.ramp - 1) * 0.3, alpha: fade, frame: Math.floor(now * 14) });
+      } else if (f.kind === 'lob' && f.t > 0) {
+        const k = G.U.clamp(f.t / f.fly, 0, 1);
+        const x = f.sx + (f.x - f.sx) * k, y = f.sy + (f.y - f.sy) * k - Math.sin(k * Math.PI) * 70 - 8;
+        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, x, y, { scale: 1.5, angle: k * 9 + 0.001 });
+      } else if (f.kind === 'zone') {
+        const fade = Math.min(1, (f.life - f.t) * 2, f.t * 5);
+        G.VFX.draw(ctx, f.vis.proj, f.vis.pal, f.x, f.y - 30 + Math.sin(now * 3) * 3, { scale: 1.5, alpha: fade * 0.9, frame: Math.floor(now * 4) });
       }
     }
   }
@@ -671,6 +900,6 @@ G.Combat = (() => {
     }
   }
 
-  return { tick, resolve, ghostCast, ghostOrbit, updateFields, drawGroundFields, drawAirFields, clearFields,
+  return { tick, resolve, ghostCast, ghostOrbit, updateFields, drawGroundFields, drawAirFields, clearFields, onHurt,
            get fieldCount() { return fields.length; } };
 })();

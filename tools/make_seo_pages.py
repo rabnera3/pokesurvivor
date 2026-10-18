@@ -397,10 +397,12 @@ document.querySelectorAll('#chart td').forEach(td => {
 # ================= movimientos =================
 KIND = {'es': {'projectile': 'Proyectil', 'melee': 'Cuerpo a cuerpo', 'beam': 'Rayo', 'orbit': 'Órbita', 'nova': 'Ráfaga', 'aura': 'Aura', 'buff': 'Mejora',
                'boomerang': 'Bumerán', 'chain': 'Cadena', 'mine': 'Minas', 'meteor': 'Meteoros', 'turret': 'Torreta', 'dash': 'Embestida',
-               'trail': 'Rastro', 'cone': 'Abanico'},
+               'trail': 'Rastro', 'cone': 'Abanico', 'vortex': 'Remolino', 'curse': 'Maldición', 'counter': 'Contraataque',
+               'rollout': 'Rodar', 'cluster': 'Metralla', 'zone': 'Sala'},
         'en': {'projectile': 'Projectile', 'melee': 'Melee', 'beam': 'Beam', 'orbit': 'Orbit', 'nova': 'Burst', 'aura': 'Aura', 'buff': 'Buff',
                'boomerang': 'Boomerang', 'chain': 'Chain', 'mine': 'Mines', 'meteor': 'Meteors', 'turret': 'Turret', 'dash': 'Dash',
-               'trail': 'Trail', 'cone': 'Spray'}}
+               'trail': 'Trail', 'cone': 'Spray', 'vortex': 'Vortex', 'curse': 'Curse', 'counter': 'Counter',
+               'rollout': 'Roll', 'cluster': 'Cluster', 'zone': 'Room'}}
 def moves_page(lang):
     pid = 'moves'
     rows = []
@@ -475,6 +477,9 @@ def ach_page(lang):
 
 # ================= novedades =================
 NEWS = [
+ ('2026-10-18', ('15 movimientos nuevos y 6 formas de atacar', '15 new moves and 6 new ways to attack'),
+  ('Torbellino arrastra a los enemigos a un remolino, Maldición marca con calaveras que estallan, Contraataque devuelve cada golpe con una onda de choque, Desenrollar te convierte en una bola cada vez más fuerte, Bomba Huevo estalla en metralla y Espacio Raro crea una sala donde los enemigos van a cámara lenta y reciben más daño. Además, 9 movimientos más para los tipos que tenían menos. Todos con su propio pixel art y su evolución.',
+   'Whirlpool drags enemies into a vortex, Curse marks them with skulls that burst, Counter returns every hit with a shockwave, Rollout turns you into a ball that keeps getting stronger, Egg Bomb bursts into shrapnel and Trick Room creates a room where enemies move in slow motion and take more damage. Plus 9 more moves for the types that had the fewest. All with their own pixel art and evolution.')),
  ('2026-10-14', ('Coloca los botones a tu gusto en el móvil', 'Place the buttons your way on mobile'),
   ('En Ajustes > Controles > Colocar los botones puedes arrastrar los ataques, la pausa y el joystick a donde quieras, y elegir un joystick fijo.',
    'In Settings > Controls > Place the buttons you can drag the attacks, the pause button and the joystick wherever you want, and choose a fixed joystick.')),

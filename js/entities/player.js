@@ -88,7 +88,8 @@ G.Player = class Player {
   // ---------------- stats efectivos ----------------
   get atk() { return this.baseAtk * this.atkMul * (1 + this.buffs.atk.n * this.buffs.atk.amount); }
   get spd() {
-    const s = this.baseSpd * this.spdMul * (1 + this.buffs.spd.n * this.buffs.spd.amount) * (this.slowT > 0 ? 0.5 : 1);
+    const s = this.baseSpd * this.spdMul * (1 + this.buffs.spd.n * this.buffs.spd.amount) * (this.slowT > 0 ? 0.5 : 1)
+      * (this.rolling || 1);                     // Desenrollar: ruedas más deprisa
     const w = G.Weather.speedFor(this.mon.types);
     const slow = this.inLiquid ? G.World.liquidEffect(this.mon.types).slow || 1 : 1;
     return s * slow * w;
@@ -257,6 +258,8 @@ G.Player = class Player {
       G.Projectiles.clearOrbs(this);
       this.reviveT = 0;
     }
+    // Contraataque: si lo tienes activo y listo, responde al golpe.
+    else G.Combat.onHurt(this);
   }
 
   heal(amount) {

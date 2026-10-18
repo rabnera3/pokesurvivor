@@ -31,7 +31,8 @@ G.VFX = (() => {
     steel:    ['#232d38', '#56667a', '#8c9caf', '#cad6e2', '#ffffff'],
     fairy:    ['#6a2050', '#b04a8a', '#ff8acb', '#ffc4e6', '#ffffff'],
     normal:   ['#3e3834', '#7a7068', '#c4bcb0', '#ece6dc', '#ffffff'],
-    aura:     ['#0c2460', '#1c4cb0', '#3a7cff', '#90d2ff', '#ffffff']
+    aura:     ['#0c2460', '#1c4cb0', '#3a7cff', '#90d2ff', '#ffffff'],
+    egg:      ['#4a3424', '#b0602a', '#f0a050', '#fff1d8', '#ffffff']   // Bomba Huevo: cáscara con motas
   };
   const IDX = { o: 0, d: 1, m: 2, l: 3, w: 4 };
   const H = (a, b, c) => G.U.hash(a, b, c);
@@ -335,6 +336,76 @@ G.VFX = (() => {
       P.set(4 - s, 1, 'l'); P.set(3 - s, 1, 'l'); P.set(6 + s, 1, 'l'); P.set(7 + s, 0, 'l');
       P.outline();
     } },
+    // ---- 2026-10-18: formas de las familias nuevas ----
+    whirl: { w: 17, h: 17, frames: 2, gen(P, f) {                 // remolino de 3 brazos (Torbellino)
+      for (let arm = 0; arm < 3; arm++) for (let t = 0; t <= 1; t += 0.02) {
+        const a = arm * 2.094 + t * 5.5 + f * 0.5, r = 1.5 + t * 6.5;
+        P.set(8 + Math.cos(a) * r, 8 + Math.sin(a) * r, t < 0.35 ? 'w' : t < 0.7 ? 'l' : 'm');
+      }
+      P.set(8, 8, 'w');
+      P.outline();
+    } },
+    skull: { w: 11, h: 11, frames: 2, gen(P, f) {                 // calavera con ojos que brillan (Maldición)
+      const eye = f ? 'm' : 'd';
+      ['...lllll...', '..lwwwwwl..', '.lwwwwwwwl.', '.lwwwwwwwl.', '.lEEwwwEEl.', '.lEEwlwEEl.',
+       '.lwwwdwwwl.', '..lwwwwwl..', '...ldldl...', '...lwlwl...', '....lll....']
+        .forEach((row, y) => [...row].forEach((c, x) => { if (c !== '.') P.set(x, y, c === 'E' ? eye : c); }));
+      P.outline();
+    } },
+    shock: { w: 15, h: 15, frames: 2, gen(P, f) {                 // estallido de cómic (Contraataque)
+      const N = 9, o = f * 0.35;
+      P.fill((x, y) => Math.hypot(x - 7, y - 7) < 3.6 ? (Math.hypot(x - 6, y - 6) < 1.8 ? 'w' : 'l') : null);
+      for (let k = 0; k < N; k++) {
+        const a0 = k / N * 6.2832 + o, a1 = (k + 0.5) / N * 6.2832 + o, a2 = (k + 1) / N * 6.2832 + o;
+        const pt = (a, r) => [7 + Math.cos(a) * r, 7 + Math.sin(a) * r];
+        const [x0, y0] = pt(a0, 7), [x1, y1] = pt(a1, 3.8), [x2, y2] = pt(a2, 7);
+        P.line(x0, y0, x1, y1, 'm'); P.line(x1, y1, x2, y2, 'm');
+        P.line(7, 7, x0, y0, 'l');
+      }
+      P.outline();
+    } },
+    boulder: { w: 14, h: 14, frames: 4, gen(P, f) {               // roca que rueda: las grietas giran (Desenrollar)
+      P.fill((x, y) => {
+        const dx = x - 6.5, dy = y - 6.5, d = Math.hypot(dx, dy);
+        if (d > 6) return null;
+        const lit = (-dx * 0.6 - dy * 0.8) / 6;
+        return lit > 0.4 ? 'l' : lit > -0.3 ? 'm' : 'd';
+      });
+      const a = f * Math.PI / 4;
+      for (const b of [a, a + Math.PI]) {
+        P.line(6.5 + Math.cos(b) * 1.2, 6.5 + Math.sin(b) * 1.2, 6.5 + Math.cos(b + 0.5) * 5, 6.5 + Math.sin(b + 0.5) * 5, 'd');
+        P.set(6.5 + Math.cos(b + 1.9) * 3.4, 6.5 + Math.sin(b + 1.9) * 3.4, 'd');
+      }
+      P.set(4, 3, 'w'); P.set(3, 4, 'w'); P.set(4, 4, 'w');
+      P.outline();
+    } },
+    egg: { w: 9, h: 12, gen(P) {                                  // huevo con motas (Bomba Huevo)
+      P.fill((x, y) => {
+        const top = y < 7, e = Math.hypot((x - 4) / (top ? 3.5 : 3.8), (y - 7) / (top ? 5.6 : 4.2));
+        return e <= 1 ? (x > 5 || y > 9 ? 'l' : 'w') : null;
+      });
+      for (const [x, y] of [[3, 3], [5, 5], [2, 7], [4, 8], [6, 8], [5, 2]]) P.set(x, y, 'm');
+      P.set(2, 4, 'w');
+      P.outline();
+    } },
+    shell: { w: 7, h: 6, spin: true, gen(P) {                     // trozo de cáscara (metralla)
+      ['w.w.w..', 'wwwwwm.', 'lwmwwl.', '.llll..']
+        .forEach((row, y) => [...row].forEach((c, x) => { if (c !== '.') P.set(x, y + 1, c); }));
+      P.outline();
+    } },
+    hourglass: { w: 9, h: 13, frames: 2, gen(P, f) {              // reloj de arena (Espacio Raro)
+      for (let x = 0; x < 9; x++) { P.set(x, 0, 'd'); P.set(x, 12, 'd'); }
+      for (let y = 1; y <= 11; y++) {
+        const hw = Math.max(0, Math.round(3.4 * Math.abs(y - 6) / 5));
+        P.set(4 - hw - 1, y, 'm'); P.set(4 + hw + 1, y, 'm');
+        for (let x = 4 - hw; x <= 4 + hw; x++) {
+          const sand = f ? (y >= 9 || (y > 6 && x === 4)) : (y <= 4 && y >= 2) || (y >= 10) || (y > 6 && x === 4);
+          P.set(x, y, sand ? 'l' : 'L');
+        }
+      }
+      P.set(4, 6, 'w');
+      P.outline();
+    } },
     heart: { w: 9, h: 8, gen(P) {
       ['.ll...ll.', 'lwll.llll', 'lllllllll', 'lllllllll', '.lllllll.', '..lllll..', '...lll...', '....l....']
         .forEach((row, y) => [...row].forEach((c, x) => { if (c !== '.') P.set(x, y, c === 'w' ? 'w' : 'l'); }));
@@ -475,7 +546,13 @@ G.VFX = (() => {
     'air-slash':     { proj: 'blade' },
     'pin-missile':   { proj: 'pin' },
     'ice-shard':     { proj: 'icicle', trail: 'spark' },
-    'seed-bomb':     { proj: 'seed' }
+    'seed-bomb':     { proj: 'seed' },
+    'whirlpool':     { proj: 'whirl' },
+    'curse':         { proj: 'skull' },
+    'counter':       { proj: 'shock' },
+    'rollout':       { proj: 'boulder' },
+    'egg-bomb':      { proj: 'egg', pal: 'egg' },
+    'trick-room':    { proj: 'hourglass' }
   };
 
   const TYPE_SHAPE = {

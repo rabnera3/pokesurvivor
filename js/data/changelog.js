@@ -6,14 +6,16 @@
  * Cada línea en español y en inglés.
  */
 G.CHANGELOG = [
-  { d: '2026-10-17', title: ['9 movimientos nuevos', '9 new moves'], new: [
-    ['9 movimientos nuevos, cada uno con su propio dibujo pixel art: Poder Pasado (Roca), Puño Dinámico (Lucha), Dragoaliento (Dragón), Voz Cautivadora (Hada), Chispa (Eléctrico), Tajo Aéreo (Volador), Pin Misil (Bicho), Canto Helado (Hielo) y Bomba Germen (Planta). Los tipos que tenían menos ataques ahora tienen uno más.',
-     '9 new moves, each with its own pixel art: Ancient Power (Rock), Dynamic Punch (Fighting), Dragon Breath (Dragon), Disarming Voice (Fairy), Spark (Electric), Air Slash (Flying), Pin Missile (Bug), Ice Shard (Ice) and Seed Bomb (Grass). The types that had the fewest attacks now have one more.'],
-    ['Todos evolucionan al nivel máximo: Romperrocas, Megapuño, Enfado, Carantoña, Voltio Cruel, Aire Afilado, Megacuerno, Chuzos y Drenadoras.',
-     'All of them evolve at max level: Rock Wrecker, Mega Punch, Outrage, Play Rough, Wild Charge, Air Cutter, Megahorn, Icicle Crash and Leech Seed.']
+  { d: '2026-10-18', title: ['15 movimientos nuevos y 6 formas de atacar', '15 new moves and 6 new ways to attack'], new: [
+    ['6 formas de atacar que no existían, cada una con su movimiento y su dibujo pixel art: Torbellino (Agua) arrastra a los enemigos hacia un remolino; Maldición (Fantasma) marca con una calavera que estalla al rato; Contraataque (Lucha) no ataca solo, pero cada golpe que recibes lo devuelves con una onda de choque; Desenrollar (Roca) te convierte en una bola que rueda más deprisa y pega más cuanto más arrolla; Bomba Huevo (Normal, la pueden aprender todos) lanza un huevo que estalla en metralla; y Espacio Raro (Psíquico) crea una sala donde los enemigos van a cámara lenta y reciben más daño de todo.',
+     '6 ways to attack that did not exist before, each with its own move and pixel art: Whirlpool (Water) drags enemies into a vortex; Curse (Ghost) marks them with a skull that bursts after a moment; Counter (Fighting) does not attack on its own, but every hit you take is returned with a shockwave; Rollout (Rock) turns you into a ball that rolls faster and hits harder the more it runs over; Egg Bomb (Normal, everyone can learn it) lobs an egg that bursts into shrapnel; and Trick Room (Psychic) creates a room where enemies move in slow motion and take more damage from everything.'],
+    ['9 movimientos más, también con su propio dibujo: Poder Pasado (Roca), Puño Dinámico (Lucha), Dragoaliento (Dragón), Voz Cautivadora (Hada), Chispa (Eléctrico), Tajo Aéreo (Volador), Pin Misil (Bicho), Canto Helado (Hielo) y Bomba Germen (Planta).',
+     '9 more moves, also with their own art: Ancient Power (Rock), Dynamic Punch (Fighting), Dragon Breath (Dragon), Disarming Voice (Fairy), Spark (Electric), Air Slash (Flying), Pin Missile (Bug), Ice Shard (Ice) and Seed Bomb (Grass).'],
+    ['Los 15 evolucionan al nivel máximo: Hidroariete, Mismo Destino, Desquite, Testarazo, Explosión, Campo Psíquico, Romperrocas, Megapuño, Enfado, Carantoña, Voltio Cruel, Aire Afilado, Megacuerno, Chuzos y Drenadoras.',
+     'All 15 evolve at max level: Wave Crash, Destiny Bond, Revenge, Head Smash, Explosion, Psychic Terrain, Rock Wrecker, Mega Punch, Outrage, Play Rough, Wild Charge, Air Cutter, Megahorn, Icicle Crash and Leech Seed.']
   ], chg: [
-    ['El logro Maestro de movimientos pide ahora evolucionar los 68 movimientos (antes 59).',
-     'The Move master achievement now asks you to evolve all 68 moves (59 before).']
+    ['El logro Maestro de movimientos pide ahora evolucionar los 74 movimientos (antes 59).',
+     'The Move master achievement now asks you to evolve all 74 moves (59 before).']
   ] },
   { d: '2026-10-14', title: ['Recupera tu cuenta con Gmail', 'Recover your account with Gmail'], new: [
     ['Si juegas con nombre y contraseña, puedes vincular tu Gmail: si un día olvidas la contraseña, entras con Google y es tu misma cuenta. Te lo ofrecemos al entrar.',

@@ -17,6 +17,13 @@
  *   dash        cruzas hacia el enemigo golpeando todo el camino (sin recibir daño)
  *   trail       vas dejando charcos que dañan a lo que los pisa
  *   cone        muchos disparos cortos en abanico (aliento, chorro...)
+ *   ---- desde 2026-10-18 (mecánicas nuevas) ----
+ *   vortex      remolino sobre el enemigo que atrae a los de alrededor (`pull`)
+ *   curse       marca a `count` enemigos; la marca estalla a los `fuse` segundos
+ *   counter     no ataca solo: al recibir un golpe (si está listo) suelta una onda
+ *   rollout     ruedas `dur` s más rápido (`roll`); el daño crece con cada golpe
+ *   cluster     huevo en parábola (`eggs`) que estalla y suelta `count` fragmentos
+ *   zone        sala en el suelo: frena y hace que reciban un `amp` más de daño
  *
  * Sólo el movimiento ACTIVO se ejecuta. Se cambia con 1-4 / Q / E.
  *
@@ -112,6 +119,43 @@
       { t: '+40% daño',                     m: { dmg: 1.40 } },
       { t: '+30% alcance',                  m: { life: 1.30 } },
       { t: '+3 disparos y +1 perforación',  m: { count: 3, pierce: 1 } }
+    ],
+    // ---- familias nuevas (2026-10-18): mecánicas que no existían ----
+    vortex: [
+      { t: '+30% radio',                    m: { radius: 1.30 } },
+      { t: '+45% daño',                     m: { dmg: 1.45 } },
+      { t: 'Atrae un 50% más fuerte',       m: { pull: 1.50 } },
+      { t: '+1 torbellino y +40% daño',     m: { count: 1, dmg: 1.40 } }
+    ],
+    curse: [
+      { t: '+1 maldición',                  m: { count: 1 } },
+      { t: '+50% daño',                     m: { dmg: 1.50 } },
+      { t: 'Estalla antes (-30% espera)',   m: { fuse: 0.70 } },
+      { t: '+2 maldiciones y +40% daño',    m: { count: 2, dmg: 1.40 } }
+    ],
+    counter: [
+      { t: '+40% daño',                     m: { dmg: 1.40 } },
+      { t: '+30% radio',                    m: { radius: 1.30 } },
+      { t: '-30% recarga',                  m: { cd: 0.70 } },
+      { t: '+50% daño y +30% radio',        m: { dmg: 1.50, radius: 1.30 } }
+    ],
+    rollout: [
+      { t: '+40% daño',                     m: { dmg: 1.40 } },
+      { t: '+1 s rodando',                  m: { dur: 1.33 } },
+      { t: '+30% radio',                    m: { radius: 1.30 } },
+      { t: '+50% daño y más velocidad',     m: { dmg: 1.50, roll: 1.15 } }
+    ],
+    cluster: [
+      { t: '+3 fragmentos',                 m: { count: 3 } },
+      { t: '+45% daño',                     m: { dmg: 1.45 } },
+      { t: '-25% recarga',                  m: { cd: 0.75 } },
+      { t: '+1 huevo y +3 fragmentos',      m: { eggs: 1, count: 3 } }
+    ],
+    zone: [
+      { t: '+25% tamaño',                   m: { radius: 1.25 } },
+      { t: 'Dura un 40% más',               m: { dur: 1.40 } },
+      { t: 'Reciben un 50% más de daño extra', m: { amp: 1.50 } },
+      { t: '-25% recarga y +25% tamaño',    m: { cd: 0.75, radius: 1.25 } }
     ],
     buff: [
       { t: '+1 acumulación máxima',         m: { stacks: 1 } },
@@ -436,7 +480,32 @@
 
     { id: 'seed-bomb', name: 'Bomba Germen', type: 'grass', kind: 'mine',
       desc: 'Planta semillas que estallan cuando las pisan.',
-      cd: 1.15, dmg: 20, count: 2, radius: 58, dur: 8 }
+      cd: 1.15, dmg: 20, count: 2, radius: 58, dur: 8 },
+
+    // ---------------- NUEVOS (2026-10-18): formas de atacar que no existían ----------------
+    { id: 'whirlpool', name: 'Torbellino', type: 'water', kind: 'vortex',
+      desc: 'Un remolino sobre el enemigo que arrastra hacia el centro a todos los de alrededor.',
+      cd: 2.0, dmg: 8, count: 1, radius: 72, dur: 3, pull: 110 },
+
+    { id: 'curse', name: 'Maldición', type: 'ghost', kind: 'curse',
+      desc: 'Marca a varios enemigos con una calavera: al rato estalla, aunque ya hayan caído.',
+      cd: 1.5, dmg: 38, count: 3, radius: 44, fuse: 1.8 },
+
+    { id: 'counter', name: 'Contraataque', type: 'fighting', kind: 'counter',
+      desc: 'No ataca solo: cada vez que te golpean, devuelves una onda de choque enorme.',
+      cd: 1.0, dmg: 42, radius: 96, knock: 160 },
+
+    { id: 'rollout', name: 'Desenrollar', type: 'rock', kind: 'rollout',
+      desc: 'Te haces una bola y ruedas más deprisa: cuanto más arrollas, más daño haces.',
+      cd: 4.2, dmg: 9, radius: 30, dur: 3, roll: 1.4, knock: 70 },
+
+    { id: 'egg-bomb', name: 'Bomba Huevo', type: 'normal', kind: 'cluster',
+      desc: 'Lanza un huevo por el aire: al caer estalla y suelta metralla en todas direcciones.',
+      cd: 1.3, dmg: 22, count: 6, eggs: 1, radius: 50, speed: 280, size: 5 },
+
+    { id: 'trick-room', name: 'Espacio Raro', type: 'psychic', kind: 'zone',
+      desc: 'Crea una sala extraña: dentro, los enemigos van a cámara lenta y reciben más daño de todo.',
+      cd: 6.0, dmg: 5, radius: 110, dur: 5, amp: 0.3, slow: 0.5 }
   ];
 
   // Cuerpo a cuerpo (12-10-2026): +20 % de daño y +25 % de alcance y de arco
@@ -479,8 +548,9 @@
     return s;
   }
 
-  const MULT = ['dmg', 'cd', 'speed', 'radius', 'dur', 'amount', 'arc', 'width', 'spread', 'life', 'size', 'rate'];
-  const ADD = ['count', 'pierce', 'stacks'];
+  const MULT = ['dmg', 'cd', 'speed', 'radius', 'dur', 'amount', 'arc', 'width', 'spread', 'life', 'size', 'rate',
+                'pull', 'fuse', 'roll', 'amp'];
+  const ADD = ['count', 'pierce', 'stacks', 'eggs'];
 
   function applyMods(s, m) {
     for (const k in m) {
@@ -560,7 +630,10 @@
     'dragon-breath': ['Enfado', 'spd'],      'disarming-voice': ['Carantoña', 'xp'],
     'spark': ['Voltio Cruel', 'spd'],        'air-slash': ['Aire Afilado', 'cd'],
     'pin-missile': ['Megacuerno', 'atk'],    'ice-shard': ['Chuzos', 'hp'],
-    'seed-bomb': ['Drenadoras', 'rgn']
+    'seed-bomb': ['Drenadoras', 'rgn'],
+    'whirlpool': ['Hidroariete', 'mag'],     'curse': ['Mismo Destino', 'def'],
+    'counter': ['Desquite', 'hp'],           'rollout': ['Testarazo', 'spd'],
+    'egg-bomb': ['Explosión', 'atk'],        'trick-room': ['Campo Psíquico', 'cd']
   };
   // Lo que gana al evolucionar, según cómo funcione.
   const EVO_MODS = {
@@ -577,7 +650,13 @@
     turret:     { t: '×1,8 daño, +1 a la vez y dispara más rápido', m: { dmg: 1.8, count: 1, rate: 0.8 } },
     dash:       { t: '×1,9 daño, más distancia y menos recarga', m: { dmg: 1.9, radius: 1.25, cd: 0.8 } },
     trail:      { t: '×1,8 daño, charcos más grandes y duraderos', m: { dmg: 1.8, radius: 1.25, dur: 1.3 } },
-    cone:       { t: '×1,7 daño, +4 disparos y +1 perforación', m: { dmg: 1.7, count: 4, pierce: 1 } }
+    cone:       { t: '×1,7 daño, +4 disparos y +1 perforación', m: { dmg: 1.7, count: 4, pierce: 1 } },
+    vortex:     { t: '×1,8 daño, +1 torbellino y atrae mucho más', m: { dmg: 1.8, count: 1, pull: 1.5 } },
+    curse:      { t: '×1,8 daño, +2 maldiciones y estallido más grande', m: { dmg: 1.8, count: 2, radius: 1.5 } },
+    counter:    { t: '×2 daño, más radio y menos recarga', m: { dmg: 2, radius: 1.3, cd: 0.7 } },
+    rollout:    { t: '×1,8 daño, bola más grande y rueda más rato', m: { dmg: 1.8, radius: 1.3, dur: 1.3 } },
+    cluster:    { t: '×1,7 daño, +1 huevo y +4 fragmentos', m: { dmg: 1.7, eggs: 1, count: 4 } },
+    zone:       { t: 'Sala más grande, dura más y debilita aún más', m: { radius: 1.3, dur: 1.4, amp: 1.5 } }
   };
 
   /** ¿Puede evolucionar ya? → { name, needs, needName, text, ready } o null */
